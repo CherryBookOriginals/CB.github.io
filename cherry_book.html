@@ -1,0 +1,2220 @@
+<!DOCTYPE html>
+<html lang="ru" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cherry Book — Бесплатная онлайн-библиотека и платформа для авторов</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=Inter:wght@300;400;500;600;700&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        cherry: {
+                            50: '#fff0f3',
+                            100: '#ffdee4',
+                            200: '#ffc2ce',
+                            300: '#ff94aa',
+                            400: '#ff577b',
+                            500: '#D90429', // Яркий вишневый акцент
+                            600: '#b80021',
+                            700: '#8B0029', // Глубокий бордовый/вишневый
+                            800: '#690020',
+                            900: '#4a0419',
+                            950: '#2b000d',
+                        },
+                        cream: {
+                            50: '#FDFBF7',
+                            100: '#FAF5EE',
+                            200: '#F3EAE0',
+                            800: '#26181D',
+                            900: '#160E11',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Cormorant Garamond', 'serif'],
+                        reader: ['Lora', 'serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Пользовательские стили и анимации */
+        :root {
+            --tilt-perspective: 1000px;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+
+        h1, h2, h3, .font-display {
+            font-family: 'Cormorant Garamond', serif;
+        }
+
+        /* Кастомный скроллбар */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(139, 0, 41, 0.05);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #8B0029;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #D90429;
+        }
+
+        /* 3D Карточка книги и эффект наклона */
+        .book-card-3d {
+            transform-style: preserve-3d;
+            transition: transform 0.15s ease-out, box-shadow 0.3s ease;
+            will-change: transform;
+        }
+        .book-cover-wrapper {
+            transform: translateZ(25px);
+            box-shadow: -8px 8px 20px rgba(0, 0, 0, 0.25);
+            position: relative;
+            overflow: hidden;
+        }
+        .book-cover-wrapper::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 12px;
+            height: 100%;
+            background: linear-gradient(to right, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 40%, rgba(0,0,0,0.3) 80%, rgba(255,255,255,0.15) 100%);
+            z-index: 10;
+            pointer-events: none;
+        }
+        .book-glare {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.35), transparent 65%);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            pointer-events: none;
+            z-index: 15;
+        }
+
+        /* Анимация появления при скролле */
+        .reveal-item {
+            opacity: 0;
+            transform: translateY(28px);
+            transition: opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1), transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .reveal-item.revealed {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Темы для читалки */
+        .reader-theme-light {
+            background-color: #FAF6F0;
+            color: #2C221E;
+        }
+        .reader-theme-sepia {
+            background-color: #F4ECD8;
+            color: #433422;
+        }
+        .reader-theme-night {
+            background-color: #161215;
+            color: #D8CFD2;
+        }
+
+        /* Стеклянный эффект */
+        .glass-header {
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+        }
+
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(2deg); }
+        }
+        .animate-float {
+            animation: floatSlow 5s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="bg-cream-50 text-stone-800 dark:bg-cream-900 dark:text-stone-100 transition-colors duration-300 min-h-screen flex flex-col selection:bg-cherry-500 selection:text-white">
+
+    <!-- Уведомления (Тосты) -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-[100] flex flex-col gap-2.5 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+
+    <!-- Верхняя навигационная панель -->
+    <header class="sticky top-0 z-40 glass-header bg-cream-50/85 dark:bg-cream-900/85 border-b border-cherry-700/15 dark:border-cherry-400/15 transition-colors duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+            <!-- Логотип -->
+            <a href="#" onclick="switchMainView('catalog'); return false;" class="flex items-center gap-3 group focus:outline-none">
+                <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-cherry-500 to-cherry-700 flex items-center justify-center text-white shadow-lg shadow-cherry-500/30 group-hover:scale-105 transition-transform">
+                    <i class="fa-solid fa-book-open-reader text-lg"></i>
+                </div>
+                <div>
+                    <span class="font-display text-2xl sm:text-3xl font-bold tracking-tight text-cherry-700 dark:text-cherry-400">Cherry</span>
+                    <span class="font-display text-2xl sm:text-3xl font-bold tracking-tight text-stone-800 dark:text-white">Book</span>
+                    <span class="hidden sm:block text-[10px] uppercase tracking-widest text-stone-500 dark:text-stone-400 -mt-1">Бесплатная библиотека и студия</span>
+                </div>
+            </a>
+
+            <!-- Быстрый поиск в шапке (на десктопах) -->
+            <div class="hidden md:flex flex-1 max-w-md mx-4 relative">
+                <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-stone-400"></i>
+                <input type="text" id="header-search-input" placeholder="Поиск по названию, автору или жанру..." 
+                    class="w-full pl-11 pr-10 py-2.5 rounded-full bg-cream-100 dark:bg-cream-800 border border-stone-200 dark:border-stone-700 focus:border-cherry-500 focus:ring-2 focus:ring-cherry-500/20 outline-none text-sm transition-all">
+                <button id="clear-search-btn" onclick="clearSearch()" class="hidden absolute right-3.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-cherry-500">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Правое меню навигации -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                <!-- Кнопка библиотеки -->
+                <button onclick="switchMainView('catalog')" id="nav-btn-catalog" class="px-3.5 py-2 rounded-xl text-sm font-medium bg-cherry-50 dark:bg-cherry-900/40 text-cherry-700 dark:text-cherry-300 transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-book-bookmark"></i>
+                    <span class="hidden lg:inline">Библиотека</span>
+                </button>
+
+                <!-- Кнопка конструктора/редактора книги -->
+                <button onclick="openBookStudioModal()" class="px-3.5 py-2 rounded-xl text-sm font-semibold bg-cherry-600 hover:bg-cherry-500 text-white shadow-md shadow-cherry-600/20 transition-all flex items-center gap-2" title="Создать новую книгу со своим текстом">
+                    <i class="fa-solid fa-feather-pointed"></i>
+                    <span class="hidden sm:inline">Добавить книгу</span>
+                </button>
+
+                <!-- Избранное / Закладки -->
+                <button onclick="openFavoritesDrawer()" class="relative p-2.5 rounded-xl hover:bg-stone-200/60 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-300 transition-all" title="Мои закладки">
+                    <i class="fa-regular fa-heart text-lg"></i>
+                    <span id="badge-favorites" class="hidden absolute -top-1 -right-1 w-5 h-5 rounded-full bg-cherry-500 text-white text-[11px] font-bold flex items-center justify-center shadow">0</span>
+                </button>
+
+                <!-- Переключатель темы -->
+                <button onclick="toggleTheme()" class="p-2.5 rounded-xl hover:bg-stone-200/60 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-300 transition-all" title="Сменить тему оформления">
+                    <i id="theme-icon" class="fa-solid fa-moon text-lg"></i>
+                </button>
+
+                <!-- Кнопка профиля / Входа -->
+                <div class="pl-1 border-l border-stone-200 dark:border-stone-700">
+                    <button onclick="handleProfileClick()" id="header-profile-btn" class="flex items-center gap-2.5 pl-2 pr-3.5 py-1.5 rounded-full bg-gradient-to-r from-cherry-700 to-cherry-500 hover:from-cherry-600 hover:to-cherry-500 text-white text-sm font-medium shadow-md shadow-cherry-700/20 transition-all">
+                        <span id="header-avatar" class="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold">
+                            <i class="fa-solid fa-user"></i>
+                        </span>
+                        <span id="header-username" class="max-w-[110px] truncate">Профиль</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ==========================================
+         ОСНОВНОЙ РАЗДЕЛ 1: БИБЛИОТЕКА И АВТОРСКАЯ СТУДИЯ
+         ========================================== -->
+    <main id="view-catalog" class="flex-1">
+        <!-- Главный Hero-баннер с Canvas анимацией лепестков и вишен -->
+        <section class="relative overflow-hidden bg-gradient-to-br from-cherry-950 via-cherry-800 to-cherry-700 text-white py-14 sm:py-20">
+            <!-- Canvas падающих вишневых лепестков и сияющих частиц -->
+            <canvas id="cherry-canvas" class="absolute inset-0 w-full h-full pointer-events-none z-0"></canvas>
+
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+                    <div class="lg:col-span-7 space-y-6 text-center lg:text-left">
+                        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-cherry-200 text-xs font-medium tracking-wide">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                            <span>100% Бесплатная библиотека • Создавайте и читайте свои книги онлайн</span>
+                        </div>
+
+                        <h1 class="text-4xl sm:text-6xl font-bold leading-tight tracking-tight">
+                            Ваша личная библиотека с атмосферой <span class="text-cherry-300 italic font-serif">спелой вишни</span>
+                        </h1>
+
+                        <p class="text-cherry-100/90 text-base sm:text-lg max-w-2xl mx-auto lg:mx-0 font-light leading-relaxed">
+                            Все книги полностью бесплатны! Мы подготовили для вас <strong>1 стартовую книгу-шаблон</strong> — нажмите «Свой текст / Редактировать», чтобы вставить туда собственный текст, разбить его на главы или загрузить <code>.txt</code> файл.
+                        </p>
+
+                        <div class="flex flex-wrap items-center justify-center lg:justify-start gap-4 pt-2">
+                            <button onclick="openEditFirstBook()" class="px-7 py-3.5 rounded-2xl bg-white text-cherry-800 hover:bg-cherry-50 font-semibold text-sm shadow-xl shadow-black/20 transition-all transform hover:-translate-y-0.5 flex items-center gap-2">
+                                <i class="fa-solid fa-pen-nib"></i>
+                                <span>Вставить свой текст в книгу</span>
+                            </button>
+                            <button onclick="openBookStudioModal()" class="px-6 py-3.5 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/25 text-white font-medium text-sm transition-all flex items-center gap-2">
+                                <i class="fa-solid fa-plus text-cherry-300"></i>
+                                <span>Создать ещё книгу</span>
+                            </button>
+                        </div>
+
+                        <!-- Преимущества -->
+                        <div class="pt-6 grid grid-cols-3 gap-4 border-t border-white/15 max-w-lg mx-auto lg:mx-0">
+                            <div>
+                                <div class="text-2xl font-bold font-display text-cherry-200" id="stat-total-books">1</div>
+                                <div class="text-xs text-cherry-100/75">Книг в вашей библиотеке</div>
+                            </div>
+                            <div>
+                                <div class="text-2xl font-bold font-display text-emerald-300">Бесплатно</div>
+                                <div class="text-xs text-cherry-100/75">Никаких покупок и подписок</div>
+                            </div>
+                            <div>
+                                <div class="text-2xl font-bold font-display text-cherry-200">Облако БД</div>
+                                <div class="text-xs text-cherry-100/75">Сохранение глав и текста</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Правая витрина главной книги в баннере -->
+                    <div class="lg:col-span-5 flex justify-center">
+                        <div id="hero-featured-card" class="relative w-full max-w-sm p-6 rounded-3xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl animate-float">
+                            <!-- Заполняется динамически через JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Панель фильтрации, поиска и сортировки -->
+        <section id="catalog-anchor" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-6">
+            <!-- Мобильный поиск -->
+            <div class="md:hidden mb-6 relative">
+                <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-stone-400"></i>
+                <input type="text" id="mobile-search-input" placeholder="Поиск по названию или автору..." 
+                    class="w-full pl-11 pr-4 py-3 rounded-2xl bg-cream-100 dark:bg-cream-800 border border-stone-200 dark:border-stone-700 focus:border-cherry-500 outline-none text-sm">
+            </div>
+
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-6 border-b border-stone-200 dark:border-stone-800">
+                <!-- Категории / Жанры -->
+                <div id="genre-pills" class="flex items-center gap-2 overflow-x-auto pb-2 lg:pb-0 no-scrollbar">
+                    <button onclick="setGenreFilter('Все')" data-genre="Все" class="genre-pill px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all bg-cherry-700 text-white shadow-md shadow-cherry-700/20">
+                        Все книги
+                    </button>
+                    <button onclick="setGenreFilter('Фэнтези')" data-genre="Фэнтези" class="genre-pill px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all bg-cream-100 dark:bg-cream-800 hover:bg-cherry-50 dark:hover:bg-cherry-900/30">
+                        🐉 Фэнтези
+                    </button>
+                    <button onclick="setGenreFilter('Роман / Проза')" data-genre="Роман / Проза" class="genre-pill px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all bg-cream-100 dark:bg-cream-800 hover:bg-cherry-50 dark:hover:bg-cherry-900/30">
+                        🍒 Роман / Проза
+                    </button>
+                    <button onclick="setGenreFilter('Научная фантастика')" data-genre="Научная фантастика" class="genre-pill px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all bg-cream-100 dark:bg-cream-800 hover:bg-cherry-50 dark:hover:bg-cherry-900/30">
+                        🚀 Фантастика
+                    </button>
+                    <button onclick="setGenreFilter('Детективы')" data-genre="Детективы" class="genre-pill px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all bg-cream-100 dark:bg-cream-800 hover:bg-cherry-50 dark:hover:bg-cherry-900/30">
+                        🕵️ Детективы
+                    </button>
+                    <button onclick="setGenreFilter('Манга и Ранобэ')" data-genre="Манга и Ранобэ" class="genre-pill px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all bg-cream-100 dark:bg-cream-800 hover:bg-cherry-50 dark:hover:bg-cherry-900/30">
+                        🌸 Ранобэ / Фанфик
+                    </button>
+                    <button onclick="setGenreFilter('Личный дневник / Заметки')" data-genre="Личный дневник / Заметки" class="genre-pill px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all bg-cream-100 dark:bg-cream-800 hover:bg-cherry-50 dark:hover:bg-cherry-900/30">
+                        📓 Свои тексты
+                    </button>
+                </div>
+
+                <!-- Сортировка и счетчик -->
+                <div class="flex items-center justify-between sm:justify-end gap-4">
+                    <span id="catalog-count-label" class="text-xs font-medium text-stone-500 dark:text-stone-400">Книг в библиотеке: 1</span>
+                    <div class="flex items-center gap-2">
+                        <label for="sort-select" class="text-xs text-stone-500 dark:text-stone-400 hidden sm:inline">Сортировка:</label>
+                        <select id="sort-select" onchange="setSortOrder(this.value)" class="px-3.5 py-2 rounded-xl bg-cream-100 dark:bg-cream-800 border border-stone-200 dark:border-stone-700 text-sm font-medium outline-none focus:border-cherry-500">
+                            <option value="newest">Сначала новые</option>
+                            <option value="rating">По высокому рейтингу</option>
+                            <option value="chapters">По количеству глав</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Сетка каталога книг -->
+        <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
+            <div id="books-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-7">
+                <!-- Карточки книг рендерятся динамически -->
+            </div>
+
+            <!-- Состояние пустого поиска -->
+            <div id="empty-catalog-state" class="hidden py-20 text-center max-w-md mx-auto">
+                <div class="w-20 h-20 rounded-full bg-cherry-50 dark:bg-cherry-950/60 text-cherry-500 flex items-center justify-center mx-auto mb-4 text-3xl">
+                    <i class="fa-solid fa-book-bookmark"></i>
+                </div>
+                <h3 class="text-2xl font-bold mb-2">Книги не найдены</h3>
+                <p class="text-sm text-stone-500 dark:text-stone-400 mb-6">В этой категории пока нет книг. Сбросьте фильтр или создайте свою книгу со своим текстом!</p>
+                <div class="flex justify-center gap-3">
+                    <button onclick="resetAllFilters()" class="px-5 py-2.5 rounded-xl bg-stone-200 dark:bg-stone-800 text-sm font-medium transition-all">
+                        Показать все
+                    </button>
+                    <button onclick="openBookStudioModal()" class="px-5 py-2.5 rounded-xl bg-cherry-700 hover:bg-cherry-600 text-white text-sm font-medium transition-all">
+                        + Создать свою книгу
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ==========================================
+         ОСНОВНОЙ РАЗДЕЛ 2: ЛИЧНЫЙ КАБИНЕТ / ПРОФИЛЬ
+         ========================================== -->
+    <main id="view-profile" class="hidden flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <!-- Верхняя карточка профиля -->
+        <div class="rounded-3xl bg-gradient-to-r from-cherry-900 via-cherry-800 to-cherry-700 text-white p-6 sm:p-10 shadow-xl relative overflow-hidden mb-8">
+            <div class="absolute -right-12 -bottom-12 w-64 h-64 rounded-full bg-white/5 pointer-events-none"></div>
+            
+            <div class="flex flex-col md:flex-row items-center md:items-start justify-between gap-6 relative z-10">
+                <div class="flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
+                    <!-- Аватар пользователя -->
+                    <div id="profile-avatar-box" class="w-24 h-24 rounded-3xl bg-white/20 backdrop-blur-md border-2 border-white/40 flex items-center justify-center text-4xl shadow-lg select-none">
+                        🍒
+                    </div>
+                    <div>
+                        <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2.5">
+                            <h1 id="profile-name-display" class="text-3xl sm:text-4xl font-bold">Автор и Читатель</h1>
+                            <span id="profile-status-badge" class="px-3 py-0.5 rounded-full text-xs font-medium bg-cherry-500/80 border border-white/20">Хранитель историй</span>
+                        </div>
+                        <p id="profile-bio-display" class="text-cherry-100 text-sm mt-2 max-w-xl">Пишу собственные книги, загружаю главы и читаю бесплатно в уютной вишневой библиотеке.</p>
+                        <div class="flex flex-wrap items-center justify-center sm:justify-start gap-4 mt-4 text-xs text-cherry-200">
+                            <span><i class="fa-regular fa-calendar mr-1.5"></i>В клубе с: <strong id="profile-joined-display">Октябрь 2026</strong></span>
+                            <span><i class="fa-solid fa-fingerprint mr-1.5"></i>ID: <code id="profile-uid-display" class="bg-black/25 px-2 py-0.5 rounded select-all">---</code></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Кнопки управления профилем -->
+                <div class="flex flex-wrap items-center gap-3">
+                    <button onclick="openEditProfileModal()" class="px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 backdrop-blur-md border border-white/20 text-sm font-medium transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                        <span>Настроить профиль</span>
+                    </button>
+                    <button onclick="openAuthModal()" class="px-4 py-2.5 rounded-xl bg-white text-cherry-800 hover:bg-cherry-50 text-sm font-semibold transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-key"></i>
+                        <span>Вход / Регистрация</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Годовая цель чтения (прогресс-бар) -->
+            <div class="mt-8 pt-6 border-t border-white/15 grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                <div class="md:col-span-8">
+                    <div class="flex items-center justify-between text-sm mb-2">
+                        <span class="font-medium flex items-center gap-2">
+                            <i class="fa-solid fa-trophy text-amber-300"></i>
+                            <span>Личный книжный вызов 2026 года</span>
+                        </span>
+                        <span id="reading-goal-label" class="font-bold">0 из 10 книг (0%)</span>
+                    </div>
+                    <div class="w-full h-3 rounded-full bg-black/30 overflow-hidden p-0.5">
+                        <div id="reading-goal-bar" class="h-full rounded-full bg-gradient-to-r from-amber-300 via-cherry-300 to-white transition-all duration-700" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="md:col-span-4 flex justify-end gap-3">
+                    <div class="px-4 py-2 rounded-2xl bg-black/20 border border-white/10 text-center flex-1">
+                        <div id="stat-shelf-reading" class="text-xl font-bold">0</div>
+                        <div class="text-[11px] text-cherry-200">Читаю</div>
+                    </div>
+                    <div class="px-4 py-2 rounded-2xl bg-black/20 border border-white/10 text-center flex-1">
+                        <div id="stat-shelf-completed" class="text-xl font-bold">0</div>
+                        <div class="text-[11px] text-cherry-200">Прочитано</div>
+                    </div>
+                    <div class="px-4 py-2 rounded-2xl bg-black/20 border border-white/10 text-center flex-1">
+                        <div id="stat-user-reviews" class="text-xl font-bold">0</div>
+                        <div class="text-[11px] text-cherry-200">Отзывов</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Вкладки в Личном кабинете -->
+        <div class="flex items-center gap-2 overflow-x-auto pb-3 mb-8 border-b border-stone-200 dark:border-stone-800">
+            <button onclick="switchProfileTab('shelves')" id="prof-tab-shelves" class="prof-tab-btn px-5 py-2.5 rounded-xl text-sm font-semibold bg-cherry-700 text-white shadow-md transition-all flex items-center gap-2 whitespace-nowrap">
+                <i class="fa-solid fa-layer-group"></i>
+                <span>Мои книжные полки</span>
+            </button>
+            <button onclick="switchProfileTab('mybooks')" id="prof-tab-mybooks" class="prof-tab-btn px-5 py-2.5 rounded-xl text-sm font-semibold bg-cream-100 dark:bg-cream-800 text-stone-700 dark:text-stone-300 hover:bg-cherry-50 transition-all flex items-center gap-2 whitespace-nowrap">
+                <i class="fa-solid fa-pen-nib"></i>
+                <span>Мои книги и тексты</span>
+            </button>
+            <button onclick="switchProfileTab('reviews')" id="prof-tab-reviews" class="prof-tab-btn px-5 py-2.5 rounded-xl text-sm font-semibold bg-cream-100 dark:bg-cream-800 text-stone-700 dark:text-stone-300 hover:bg-cherry-50 transition-all flex items-center gap-2 whitespace-nowrap">
+                <i class="fa-solid fa-star-half-stroke"></i>
+                <span>Мои отзывы</span>
+            </button>
+            <button onclick="switchProfileTab('stats')" id="prof-tab-stats" class="prof-tab-btn px-5 py-2.5 rounded-xl text-sm font-semibold bg-cream-100 dark:bg-cream-800 text-stone-700 dark:text-stone-300 hover:bg-cherry-50 transition-all flex items-center gap-2 whitespace-nowrap">
+                <i class="fa-solid fa-chart-pie"></i>
+                <span>Статистика чтения</span>
+            </button>
+        </div>
+
+        <!-- Содержимое вкладки 1: Мои полки -->
+        <div id="profile-panel-shelves" class="space-y-6">
+            <div class="flex flex-wrap items-center gap-2">
+                <button onclick="filterShelfView('all')" data-shelf="all" class="shelf-filter-btn px-4 py-1.5 rounded-lg text-xs font-semibold bg-stone-800 text-white dark:bg-white dark:text-stone-900">Все на полках</button>
+                <button onclick="filterShelfView('reading')" data-shelf="reading" class="shelf-filter-btn px-4 py-1.5 rounded-lg text-xs font-semibold bg-cream-200 dark:bg-cream-800">📖 Читаю</button>
+                <button onclick="filterShelfView('planned')" data-shelf="planned" class="shelf-filter-btn px-4 py-1.5 rounded-lg text-xs font-semibold bg-cream-200 dark:bg-cream-800">🔖 В планах</button>
+                <button onclick="filterShelfView('completed')" data-shelf="completed" class="shelf-filter-btn px-4 py-1.5 rounded-lg text-xs font-semibold bg-cream-200 dark:bg-cream-800">✅ Прочитано</button>
+            </div>
+            <div id="profile-shelves-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+        </div>
+
+        <!-- Содержимое вкладки 2: Мои созданные/редактируемые книги -->
+        <div id="profile-panel-mybooks" class="hidden space-y-4">
+            <div class="flex items-center justify-between bg-cream-100 dark:bg-cream-800 p-4 rounded-2xl border border-stone-200 dark:border-stone-700">
+                <div>
+                    <h3 class="font-bold text-lg">Ваша авторская мастерская</h3>
+                    <p class="text-xs text-stone-500">Вы можете отредактировать существующую книгу, добавить в неё главы или создать новую.</p>
+                </div>
+                <button onclick="openBookStudioModal()" class="px-4 py-2.5 rounded-xl bg-cherry-700 hover:bg-cherry-600 text-white text-xs font-semibold flex items-center gap-2">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Новая книга</span>
+                </button>
+            </div>
+            <div id="profile-mybooks-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+        </div>
+
+        <!-- Содержимое вкладки 3: Мои отзывы -->
+        <div id="profile-panel-reviews" class="hidden space-y-4">
+            <div id="profile-reviews-list" class="space-y-4"></div>
+        </div>
+
+        <!-- Содержимое вкладки 4: Статистика чтения -->
+        <div id="profile-panel-stats" class="hidden">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="profile-stats-cards"></div>
+        </div>
+    </main>
+
+    <!-- ==========================================
+         МОДАЛЬНОЕ ОКНО ДЕТАЛЬНОЙ СТРАНИЦЫ КНИГИ
+         ========================================== -->
+    <div id="book-detail-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-3 sm:p-6 bg-black/70 backdrop-blur-sm overflow-y-auto">
+        <div class="bg-cream-50 dark:bg-cream-900 border border-stone-200 dark:border-stone-800 rounded-3xl max-w-4xl w-full max-h-[92vh] overflow-y-auto shadow-2xl relative my-auto animate-fadeIn">
+            <!-- Кнопка закрытия -->
+            <button onclick="closeBookDetailModal()" class="sticky top-4 float-right mr-4 mt-4 z-20 w-10 h-10 rounded-full bg-stone-200/80 dark:bg-stone-800/80 hover:bg-cherry-500 hover:text-white flex items-center justify-center transition-colors">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <div id="book-detail-content" class="p-6 sm:p-10">
+                <!-- Контент книги заполняется динамически -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         ВСТРОЕННАЯ ОНЛАЙН-ЧИТАЛКА (BOOK READER)
+         ========================================== -->
+    <div id="reader-modal" class="fixed inset-0 z-[60] hidden flex-col reader-theme-sepia transition-colors duration-300">
+        <!-- Верхняя панель читалки -->
+        <div class="border-b border-black/10 dark:border-white/10 px-4 sm:px-8 py-3.5 flex flex-wrap items-center justify-between gap-4 bg-black/5 backdrop-blur-md">
+            <div class="flex items-center gap-3">
+                <button onclick="closeReaderModal()" class="px-3.5 py-2 rounded-xl bg-cherry-700 hover:bg-cherry-600 text-white text-xs sm:text-sm font-medium flex items-center gap-2 shadow">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    <span>В библиотеку</span>
+                </button>
+                <div>
+                    <h3 id="reader-book-title" class="font-bold text-base sm:text-lg leading-tight line-clamp-1">Название книги</h3>
+                    <p id="reader-book-author" class="text-xs opacity-75">Автор</p>
+                </div>
+            </div>
+
+            <!-- Инструменты настройки шрифта, быстрого редактирования текста и темы читалки -->
+            <div class="flex items-center gap-2.5 flex-wrap">
+                <button onclick="editCurrentReaderBook()" class="px-3 py-1.5 rounded-xl bg-cherry-600/15 hover:bg-cherry-600 hover:text-white text-cherry-700 dark:text-cherry-300 border border-cherry-500/30 text-xs font-semibold transition-all flex items-center gap-1.5" title="Изменить или добавить текст в эту книгу">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                    <span>Изменить текст / Главы</span>
+                </button>
+
+                <!-- Выбор главы -->
+                <select id="reader-chapter-select" onchange="jumpToReaderPage(this.value)" class="px-3 py-1.5 rounded-xl bg-black/10 text-xs font-semibold outline-none max-w-[170px] truncate"></select>
+
+                <!-- Размер шрифта -->
+                <div class="flex items-center bg-black/10 rounded-xl p-1">
+                    <button onclick="changeReaderFontSize(-2)" class="px-2.5 py-1 rounded-lg hover:bg-black/10 text-xs font-bold" title="Уменьшить шрифт">A-</button>
+                    <span id="reader-font-label" class="px-2 text-xs font-medium">18px</span>
+                    <button onclick="changeReaderFontSize(2)" class="px-2.5 py-1 rounded-lg hover:bg-black/10 text-sm font-bold" title="Увеличить шрифт">A+</button>
+                </div>
+
+                <!-- Переключение темы читалки -->
+                <div class="flex items-center gap-1.5">
+                    <button onclick="setReaderTheme('light')" class="w-7 h-7 rounded-full bg-[#FAF6F0] border-2 border-stone-400 shadow-inner" title="Светлая бумага"></button>
+                    <button onclick="setReaderTheme('sepia')" class="w-7 h-7 rounded-full bg-[#F4ECD8] border-2 border-amber-700 shadow-inner" title="Теплая сепия"></button>
+                    <button onclick="setReaderTheme('night')" class="w-7 h-7 rounded-full bg-[#161215] border-2 border-cherry-500 shadow-inner" title="Ночной режим"></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Тело страницы чтения -->
+        <div class="flex-1 overflow-y-auto px-4 sm:px-10 py-8 sm:py-12" id="reader-scroll-container">
+            <div class="max-w-2xl mx-auto">
+                <div class="mb-6 pb-4 border-b border-current/10 flex items-center justify-between text-xs uppercase tracking-widest opacity-60">
+                    <span id="reader-chapter-indicator">Бесплатное чтение</span>
+                    <span id="reader-saved-badge"><i class="fa-solid fa-cloud-arrow-up mr-1"></i>Закладка сохранена в БД</span>
+                </div>
+
+                <article id="reader-page-text" class="font-reader leading-relaxed space-y-5 select-text whitespace-pre-line" style="font-size: 18px;">
+                    <!-- Текст текущей страницы -->
+                </article>
+            </div>
+        </div>
+
+        <!-- Нижняя панель навигации по страницам -->
+        <div class="border-t border-black/10 px-4 sm:px-8 py-4 bg-black/5 flex items-center justify-between max-w-4xl w-full mx-auto rounded-t-2xl">
+            <button id="reader-prev-btn" onclick="turnReaderPage(-1)" class="px-5 py-2.5 rounded-xl bg-black/10 hover:bg-black/20 font-medium text-sm flex items-center gap-2 transition-all disabled:opacity-30">
+                <i class="fa-solid fa-chevron-left"></i>
+                <span>Предыдущая</span>
+            </button>
+
+            <div class="text-center">
+                <div id="reader-page-counter" class="text-sm font-bold">Глава 1 из 1</div>
+                <div class="w-32 sm:w-48 h-1.5 rounded-full bg-black/15 mt-1.5 overflow-hidden">
+                    <div id="reader-progress-bar" class="h-full bg-cherry-600 transition-all duration-300" style="width: 100%"></div>
+                </div>
+            </div>
+
+            <button id="reader-next-btn" onclick="turnReaderPage(1)" class="px-5 py-2.5 rounded-xl bg-cherry-700 hover:bg-cherry-600 text-white font-medium text-sm flex items-center gap-2 transition-all disabled:opacity-30">
+                <span>Следующая</span>
+                <i class="fa-solid fa-chevron-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         БОКОВАЯ ПАНЕЛЬ ИЗБРАННОГО / ЗАКЛАДОК (DRAWER)
+         ========================================== -->
+    <div id="fav-drawer-backdrop" onclick="closeFavoritesDrawer()" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-xs transition-opacity"></div>
+    <aside id="fav-drawer" class="fixed top-0 right-0 z-50 h-full w-full max-w-md bg-cream-50 dark:bg-cream-900 border-l border-stone-200 dark:border-stone-800 shadow-2xl transform translate-x-full transition-transform duration-300 flex flex-col">
+        <div class="p-5 border-b border-stone-200 dark:border-stone-800 flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <i class="fa-solid fa-heart text-cherry-500 text-xl"></i>
+                <h2 class="text-2xl font-bold">Любимые книги</h2>
+            </div>
+            <button onclick="closeFavoritesDrawer()" class="w-9 h-9 rounded-full hover:bg-stone-200 dark:hover:bg-stone-800 flex items-center justify-center">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div id="fav-items-container" class="flex-1 overflow-y-auto p-5 space-y-4"></div>
+    </aside>
+
+    <!-- ==========================================
+         МОДАЛЬНОЕ ОКНО ВХОДА И РЕГИСТРАЦИИ (AUTH + БД)
+         ========================================== -->
+    <div id="auth-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
+        <div class="bg-cream-50 dark:bg-cream-900 border border-stone-200 dark:border-stone-800 rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl relative">
+            <button onclick="closeAuthModal()" class="absolute top-5 right-5 w-9 h-9 rounded-full hover:bg-stone-200 dark:hover:bg-stone-800 flex items-center justify-center">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center mb-6">
+                <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-cherry-500 to-cherry-700 text-white flex items-center justify-center mx-auto mb-3 text-2xl shadow-lg shadow-cherry-500/30">
+                    <i class="fa-solid fa-user-astronaut"></i>
+                </div>
+                <h2 class="text-3xl font-bold">Профиль Cherry Book</h2>
+                <p class="text-xs text-stone-500 dark:text-stone-400 mt-1">Ваши книги, главы, полки и прогресс чтения бесплатно синхронизируются с облачной БД</p>
+            </div>
+
+            <!-- Переключатель Вход / Регистрация -->
+            <div class="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-cream-200 dark:bg-cream-800 mb-6">
+                <button onclick="switchAuthTab('login')" id="auth-tab-login" class="py-2 rounded-xl text-xs font-bold bg-white dark:bg-cream-900 shadow-xs transition-all">Вход в профиль</button>
+                <button onclick="switchAuthTab('register')" id="auth-tab-register" class="py-2 rounded-xl text-xs font-bold text-stone-500 transition-all">Регистрация</button>
+            </div>
+
+            <form id="auth-form" onsubmit="submitAuthForm(event)" class="space-y-4">
+                <div id="auth-name-field" class="hidden">
+                    <label class="block text-xs font-semibold mb-1">Ваше имя или псевдоним автора</label>
+                    <input type="text" id="auth-input-name" placeholder="Например: Автор Вишневого Сада" class="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-cream-800 border border-stone-300 dark:border-stone-700 text-sm outline-none focus:border-cherry-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold mb-1">Электронная почта (Email)</label>
+                    <input type="email" id="auth-input-email" required placeholder="author@cherrybook.ru" class="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-cream-800 border border-stone-300 dark:border-stone-700 text-sm outline-none focus:border-cherry-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold mb-1">Пароль</label>
+                    <input type="password" id="auth-input-password" required placeholder="••••••••" class="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-cream-800 border border-stone-300 dark:border-stone-700 text-sm outline-none focus:border-cherry-500">
+                </div>
+
+                <button type="submit" id="auth-submit-btn" class="w-full py-3 rounded-xl bg-cherry-700 hover:bg-cherry-600 text-white font-semibold text-sm shadow-lg shadow-cherry-700/25 transition-all">
+                    Войти и синхронизировать БД
+                </button>
+            </form>
+
+            <div class="relative my-5 text-center">
+                <span class="px-3 bg-cream-50 dark:bg-cream-900 text-xs text-stone-400 relative z-10">или быстрый вход</span>
+                <div class="absolute top-1/2 left-0 w-full border-t border-stone-200 dark:border-stone-800"></div>
+            </div>
+
+            <button onclick="quickDemoLogin()" class="w-full py-2.5 rounded-xl border border-cherry-600/30 hover:bg-cherry-50 dark:hover:bg-cherry-950/50 text-cherry-700 dark:text-cherry-300 text-xs font-semibold transition-all flex items-center justify-center gap-2">
+                <i class="fa-solid fa-bolt"></i>
+                <span>Активировать профиль автора в 1 клик</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ ПРОФИЛЯ
+         ========================================== -->
+    <div id="edit-profile-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
+        <div class="bg-cream-50 dark:bg-cream-900 border border-stone-200 dark:border-stone-800 rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl relative">
+            <button onclick="closeEditProfileModal()" class="absolute top-5 right-5 w-9 h-9 rounded-full hover:bg-stone-200 dark:hover:bg-stone-800 flex items-center justify-center">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <h2 class="text-2xl font-bold mb-5">Настройки профиля</h2>
+            <form onsubmit="saveProfileSettings(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold mb-1.5">Выберите аватарку</label>
+                    <div id="avatar-picker" class="flex items-center gap-2.5 flex-wrap">
+                        <button type="button" onclick="selectAvatarEmoji('🍒')" class="avatar-opt w-11 h-11 rounded-xl bg-cream-200 dark:bg-cream-800 text-xl flex items-center justify-center border-2 border-cherry-500">🍒</button>
+                        <button type="button" onclick="selectAvatarEmoji('🦊')" class="avatar-opt w-11 h-11 rounded-xl bg-cream-200 dark:bg-cream-800 text-xl flex items-center justify-center border-2 border-transparent">🦊</button>
+                        <button type="button" onclick="selectAvatarEmoji('🦉')" class="avatar-opt w-11 h-11 rounded-xl bg-cream-200 dark:bg-cream-800 text-xl flex items-center justify-center border-2 border-transparent">🦉</button>
+                        <button type="button" onclick="selectAvatarEmoji('☕')" class="avatar-opt w-11 h-11 rounded-xl bg-cream-200 dark:bg-cream-800 text-xl flex items-center justify-center border-2 border-transparent">☕</button>
+                        <button type="button" onclick="selectAvatarEmoji('🌙')" class="avatar-opt w-11 h-11 rounded-xl bg-cream-200 dark:bg-cream-800 text-xl flex items-center justify-center border-2 border-transparent">🌙</button>
+                        <button type="button" onclick="selectAvatarEmoji('🐉')" class="avatar-opt w-11 h-11 rounded-xl bg-cream-200 dark:bg-cream-800 text-xl flex items-center justify-center border-2 border-transparent">🐉</button>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold mb-1">Ваше имя / Псевдоним</label>
+                    <input type="text" id="edit-prof-name" required class="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-cream-800 border border-stone-300 dark:border-stone-700 text-sm outline-none focus:border-cherry-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold mb-1">Читательский или авторский титул</label>
+                    <input type="text" id="edit-prof-status" placeholder="Например: Автор вишневых историй" class="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-cream-800 border border-stone-300 dark:border-stone-700 text-sm outline-none focus:border-cherry-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold mb-1">О себе</label>
+                    <textarea id="edit-prof-bio" rows="3" class="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-cream-800 border border-stone-300 dark:border-stone-700 text-sm outline-none focus:border-cherry-500"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold mb-1">Цель по чтению на 2026 год (количество книг)</label>
+                    <input type="number" id="edit-prof-goal" min="1" max="200" value="10" class="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-cream-800 border border-stone-300 dark:border-stone-700 text-sm outline-none focus:border-cherry-500">
+                </div>
+                <button type="submit" class="w-full py-3 rounded-xl bg-cherry-700 hover:bg-cherry-600 text-white font-semibold text-sm shadow-lg transition-all">
+                    Сохранить изменения в БД
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         СТУДИЯ СОЗДАНИЯ И РЕДАКТИРОВАНИЯ КНИГИ И ГЛАВ (BOOK STUDIO)
+         ========================================== -->
+    <div id="book-studio-modal" class="fixed inset-0 z-[55] hidden items-center justify-center p-3 sm:p-6 bg-black/75 backdrop-blur-sm overflow-y-auto">
+        <div class="bg-cream-50 dark:bg-cream-900 border border-stone-200 dark:border-stone-800 rounded-3xl max-w-3xl w-full max-h-[92vh] overflow-y-auto p-6 sm:p-8 shadow-2xl relative my-auto">
+            <button onclick="closeBookStudioModal()" class="absolute top-5 right-5 w-9 h-9 rounded-full hover:bg-stone-200 dark:hover:bg-stone-800 flex items-center justify-center">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="flex items-center gap-3 mb-2">
+                <div class="w-10 h-10 rounded-2xl bg-cherry-700 text-white flex items-center justify-center">
+                    <i class="fa-solid fa-pen-nib"></i>
+                </div>
+                <div>
+                    <h2 id="studio-modal-title" class="text-2xl sm:text-3xl font-bold">Редактор вашей книги</h2>
+                    <p class="text-xs text-stone-500 dark:text-stone-400">Добавьте или измените название, обложку и вставляйте собственный текст по главам (бесплатно)</p>
+                </div>
+            </div>
+
+            <form onsubmit="saveBookFromStudio(event)" class="space-y-4 mt-5">
+                <input type="hidden" id="studio-book-id">
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold mb-1">Название вашей книги *</label>
+                        <input type="text" id="studio-book-title" required placeholder="Введите название книги..." class="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-cream-800 border border-stone-300 dark:border-stone-700 text-sm outline-none focus:border-cherry-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold mb-1">Автор книги *</label>
+                        <input type="text" id="studio-book-author" required placeholder="Ваше имя или псевдоним" class="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-cream-800 border border-stone-300 dark:border-stone-700 text-sm outline-none focus:border-cherry-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold mb-1">Жанр</label>
+                        <select id="studio-book-genre" class="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-cream-800 border border-stone-300 dark:border-stone-700 text-sm outline-none focus:border-cherry-500">
+                            <option value="Роман / Проза">🍒 Роман / Проза</option>
+                            <option value="Фэнтези">🐉 Фэнтези</option>
+                            <option value="Научная фантастика">🚀 Научная фантастика</option>
+                            <option value="Детективы">🕵️ Детективы</option>
+                            <option value="Манга и Ранобэ">🌸 Манга и Ранобэ</option>
+                            <option value="Личный дневник / Заметки">📓 Личный дневник / Заметки</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold mb-1">Цвет обложки</label>
+                        <select id="studio-book-gradient" class="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-cream-800 border border-stone-300 dark:border-stone-700 text-sm outline-none focus:border-cherry-500">
+                            <option value="from-[#8B0029] via-[#5c001b] to-[#24000a]">Спелая вишня (Бордовый)</option>
+                            <option value="from-[#c9184a] via-[#800f2f] to-[#2b000d]">Цветущая сакура (Алый)</option>
+                            <option value="from-[#3a0ca3] via-[#7209b7] to-[#10002b]">Ночной неон (Фиолетовый)</option>
+                            <option value="from-[#1b4332] via-[#081c15] to-[#000000]">Тёмный изумруд (Лесной)</option>
+                            <option value="from-[#7f4f24] via-[#582f0e] to-[#261103]">Старинный фолиант (Кожа)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold mb-1">Иконка на обложке</label>
+                        <select id="studio-book-icon" class="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-cream-800 border border-stone-300 dark:border-stone-700 text-sm outline-none focus:border-cherry-500">
+                            <option value="fa-feather-pointed">✒️ Перо автора</option>
+                            <option value="fa-book-open">📖 Открытая книга</option>
+                            <option value="fa-wand-sparkles">✨ Магия и искры</option>
+                            <option value="fa-heart">❤️ Сердце</option>
+                            <option value="fa-moon">🌙 Полумесяц</option>
+                            <option value="fa-dragon">🐉 Дракон</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold mb-1">Краткое описание (аннотация книги) *</label>
+                    <textarea id="studio-book-desc" required rows="2" placeholder="О чём ваша книга? Напишите пару предложений..." class="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-cream-800 border border-stone-300 dark:border-stone-700 text-sm outline-none focus:border-cherry-500"></textarea>
+                </div>
+
+                <!-- Управление главами и загрузка .txt файла -->
+                <div class="pt-3 border-t border-stone-200 dark:border-stone-800">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                        <div>
+                            <label class="text-sm font-bold block">Главы и текст вашей книги</label>
+                            <span class="text-xs text-stone-500">Вы можете добавить сколько угодно глав или загрузить готовый <code>.txt</code> файл с компьютера</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <label class="cursor-pointer px-3 py-1.5 rounded-xl bg-stone-200 dark:bg-stone-800 hover:bg-stone-300 text-xs font-semibold flex items-center gap-1.5 transition-all">
+                                <i class="fa-solid fa-file-import text-cherry-600"></i>
+                                <span>Загрузить .txt файл</span>
+                                <input type="file" accept=".txt" onchange="importTxtFileToChapters(event)" class="hidden">
+                            </label>
+                            <button type="button" onclick="addChapterInputBlock()" class="px-3.5 py-1.5 rounded-xl bg-cherry-100 dark:bg-cherry-950 text-cherry-700 dark:text-cherry-300 hover:bg-cherry-200 text-xs font-bold flex items-center gap-1.5 transition-all">
+                                <i class="fa-solid fa-plus"></i>
+                                <span>Добавить главу</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="studio-chapters-container" class="space-y-4 max-h-80 overflow-y-auto pr-1">
+                        <!-- Динамические блоки глав -->
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-4 border-t border-stone-200 dark:border-stone-800">
+                    <button type="button" onclick="closeBookStudioModal()" class="px-5 py-2.5 rounded-xl bg-stone-200 dark:bg-stone-800 text-xs font-semibold">Отмена</button>
+                    <button type="submit" class="px-7 py-3 rounded-xl bg-gradient-to-r from-cherry-700 to-cherry-500 hover:from-cherry-600 hover:to-cherry-500 text-white font-semibold text-sm shadow-lg transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <span>Сохранить книгу и текст</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Подвал сайта -->
+    <footer class="bg-cream-100 dark:bg-cream-950 border-t border-stone-200 dark:border-stone-800 py-12 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-cherry-700 flex items-center justify-center text-white">
+                    <i class="fa-solid fa-book-open"></i>
+                </div>
+                <div>
+                    <span class="font-display text-xl font-bold text-cherry-700 dark:text-cherry-400">Cherry Book</span>
+                    <p class="text-xs text-stone-500">© 2026 Бесплатная онлайн-библиотека и платформа для ваших книг. Синхронизация с БД.</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-6 text-xs text-stone-500">
+                <a href="#catalog-anchor" onclick="switchMainView('catalog')" class="hover:text-cherry-600">Библиотека</a>
+                <button onclick="openEditFirstBook()" class="hover:text-cherry-600 font-semibold text-cherry-600 dark:text-cherry-400">Редактировать свою книгу</button>
+                <button onclick="handleProfileClick()" class="hover:text-cherry-600">Личный кабинет</button>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ==========================================
+         JAVASCRIPT ЛОГИКА + FIREBASE ИНТЕГРАЦИЯ
+         ========================================== -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, addDoc, deleteDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // ----------------------------------------------------
+        // 1. ВСЕГО 1 КНИГА-ШАБЛОН ДЛЯ ДОБАВЛЕНИЯ СВОЕГО ТЕКСТА
+        // ----------------------------------------------------
+        const INITIAL_BOOKS = [
+            {
+                id: "my-custom-book-1",
+                title: "Моя собственная книга (Нажмите «Свой текст», чтобы изменить)",
+                author: "Ваш Псевдоним",
+                genre: "Роман / Проза",
+                rating: 5.0,
+                reviewsCount: 1,
+                year: 2026,
+                badge: "Бесплатно • Шаблон",
+                coverGradient: "from-[#8B0029] via-[#5c001b] to-[#24000a]",
+                coverIcon: "fa-feather-pointed",
+                description: "Это ваша персональная книга-шаблон. Нажмите кнопку «Свой текст / Редактировать», чтобы изменить название, автора, аннотацию и вставить сюда свой собственный текст или главы!",
+                chapters: [
+                    {
+                        title: "Глава 1. Начало вашей истории",
+                        content: "Добро пожаловать в бесплатную библиотеку Cherry Book!\n\nЭта книга оставлена специально для того, чтобы вы могли в любой момент вставить сюда свой собственный текст, рассказ, роман или конспект.\n\nКак добавить свой текст:\n1. Нажмите кнопку «Изменить текст / Главы» прямо здесь в читалке или на карточке книги.\n2. Введите своё название книги, имя автора и описание.\n3. Вставьте текст своих глав или загрузите готовый файл .txt со своего устройства.\n\nВсе изменения мгновенно сохранятся, и вы сможете комфортно читать свою книгу с телефона или компьютера в светлой, сепии или ночной теме!"
+                    }
+                ]
+            }
+        ];
+
+        // ----------------------------------------------------
+        // 2. ГЛОБАЛЬНОЕ СОСТОЯНИЕ ПРИЛОЖЕНИЯ (БЕЗ ЦЕН И КОРЗИН)
+        // ----------------------------------------------------
+        let appState = {
+            books: [...INITIAL_BOOKS],
+            currentGenre: 'Все',
+            searchQuery: '',
+            sortBy: 'newest',
+            activeBookId: null,
+            // Читалка
+            readerBookId: null,
+            readerPageIndex: 0,
+            readerFontSize: 18,
+            readerTheme: 'sepia',
+            // Пользовательские данные (синхронизируются с Firestore)
+            user: null,
+            profile: {
+                name: "Автор Cherry Book",
+                status: "Писатель и Читатель",
+                bio: "Создаю свои книги, добавляю главы и читаю бесплатно в онлайн-библиотеке.",
+                avatar: "🍒",
+                joined: "Октябрь 2026",
+                readingGoal: 10,
+                favorites: ["my-custom-book-1"],
+                shelves: {
+                    "my-custom-book-1": "reading"
+                },
+                readingProgress: {}
+            },
+            reviews: [],
+            currentShelfFilter: 'all',
+            authMode: 'login'
+        };
+
+        // ----------------------------------------------------
+        // 3. FIREBASE AUTH + FIRESTORE (СТРОГО ПО ПРАВИЛАМ)
+        // ----------------------------------------------------
+        let db = null;
+        let auth = null;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'cherry-book-app';
+
+        async function initFirebaseAndData() {
+            try {
+                if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+                    const firebaseConfig = JSON.parse(__firebase_config);
+                    const app = initializeApp(firebaseConfig);
+                    db = getFirestore(app);
+                    auth = getAuth(app);
+
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+
+                    onAuthStateChanged(auth, async (user) => {
+                        appState.user = user;
+                        if (user) {
+                            updateHeaderUserUI();
+                            await setupFirestoreListeners(user.uid);
+                        }
+                    });
+                } else {
+                    updateHeaderUserUI();
+                }
+            } catch (err) {
+                console.error("Ошибка инициализации облачной БД:", err);
+                updateHeaderUserUI();
+            }
+        }
+
+        async function setupFirestoreListeners(userId) {
+            if (!db || !appState.user) return;
+
+            // 1. Слушатель личного профиля пользователя
+            const userProfileRef = doc(db, 'artifacts', appId, 'users', userId, 'profile', 'main');
+            onSnapshot(userProfileRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    appState.profile = {
+                        ...appState.profile,
+                        ...data,
+                        favorites: data.favorites || [],
+                        shelves: data.shelves ? JSON.parse(data.shelves) : {},
+                        readingProgress: data.readingProgress ? JSON.parse(data.readingProgress) : {}
+                    };
+                    refreshAllUI();
+                } else {
+                    saveUserProfileToFirestore();
+                }
+            }, (err) => console.error("Ошибка чтения профиля:", err));
+
+            // 2. Слушатель публичных отзывов
+            const reviewsColRef = collection(db, 'artifacts', appId, 'public', 'data', 'reviews');
+            onSnapshot(reviewsColRef, (snap) => {
+                const loadedReviews = [];
+                snap.forEach(d => loadedReviews.push({ id: d.id, ...d.data() }));
+                loadedReviews.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+                appState.reviews = loadedReviews;
+                recalculateBookRatings();
+                renderCatalog();
+                if (appState.activeBookId) renderBookDetailModalContent(appState.activeBookId);
+                renderProfileData();
+            }, (err) => console.error("Ошибка чтения отзывов:", err));
+
+            // 3. Слушатель книг в базе данных (заменяет дефолтную книгу при редактировании или добавляет новые)
+            const customBooksColRef = collection(db, 'artifacts', appId, 'public', 'data', 'libraryBooks');
+            onSnapshot(customBooksColRef, (snap) => {
+                if (snap.empty) {
+                    appState.books = [...INITIAL_BOOKS];
+                } else {
+                    const loadedBooks = [];
+                    snap.forEach(d => {
+                        const bData = d.data();
+                        loadedBooks.push({
+                            ...bData,
+                            id: d.id,
+                            chapters: bData.chapters ? JSON.parse(bData.chapters) : [{ title: "Глава 1", content: "Текст книги." }]
+                        });
+                    });
+                    loadedBooks.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+                    appState.books = loadedBooks;
+                }
+                recalculateBookRatings();
+                renderCatalog();
+                renderHeroFeaturedBook();
+                renderProfileData();
+                document.getElementById('stat-total-books').textContent = `${appState.books.length}`;
+            }, (err) => console.error("Ошибка чтения библиотеки:", err));
+        }
+
+        async function saveUserProfileToFirestore() {
+            refreshAllUI();
+            if (!db || !appState.user) return;
+            try {
+                const userId = appState.user.uid;
+                const userProfileRef = doc(db, 'artifacts', appId, 'users', userId, 'profile', 'main');
+                await setDoc(userProfileRef, {
+                    name: appState.profile.name,
+                    status: appState.profile.status,
+                    bio: appState.profile.bio,
+                    avatar: appState.profile.avatar,
+                    joined: appState.profile.joined,
+                    readingGoal: Number(appState.profile.readingGoal) || 10,
+                    favorites: appState.profile.favorites,
+                    shelves: JSON.stringify(appState.profile.shelves),
+                    readingProgress: JSON.stringify(appState.profile.readingProgress),
+                    updatedAt: Date.now()
+                }, { merge: true });
+            } catch (e) {
+                console.error("Ошибка сохранения профиля в БД:", e);
+            }
+        }
+
+        async function saveBookToFirestore(bookObj) {
+            if (!db || !appState.user) return;
+            try {
+                const bookRef = doc(db, 'artifacts', appId, 'public', 'data', 'libraryBooks', bookObj.id);
+                await setDoc(bookRef, {
+                    title: bookObj.title,
+                    author: bookObj.author,
+                    genre: bookObj.genre,
+                    rating: bookObj.rating || 5.0,
+                    reviewsCount: bookObj.reviewsCount || 1,
+                    year: bookObj.year || 2026,
+                    badge: bookObj.badge || "Бесплатно",
+                    coverGradient: bookObj.coverGradient,
+                    coverIcon: bookObj.coverIcon,
+                    description: bookObj.description,
+                    chapters: JSON.stringify(bookObj.chapters || []),
+                    updatedAt: Date.now(),
+                    createdBy: appState.user.uid
+                }, { merge: true });
+            } catch (e) {
+                console.error("Ошибка сохранения книги в БД:", e);
+            }
+        }
+
+        function recalculateBookRatings() {
+            appState.books.forEach(book => {
+                const bookRevs = appState.reviews.filter(r => r.bookId === book.id);
+                if (bookRevs.length > 0) {
+                    const sum = bookRevs.reduce((acc, r) => acc + Number(r.rating || 5), 0);
+                    book.computedRating = (sum / bookRevs.length).toFixed(1);
+                    book.computedReviewsCount = bookRevs.length;
+                } else {
+                    book.computedRating = Number(book.rating || 5.0).toFixed(1);
+                    book.computedReviewsCount = book.reviewsCount || 1;
+                }
+            });
+        }
+
+        // ----------------------------------------------------
+        // 4. АНИМАЦИЯ CANVAS: ПАДАЮЩИЕ ЛЕПЕСТКИ ВИШНИ
+        // ----------------------------------------------------
+        function initCherryBlossomCanvas() {
+            const canvas = document.getElementById('cherry-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            let width, height;
+            const petals = [];
+            const PETAL_COUNT = 38;
+
+            function resize() {
+                const rect = canvas.parentElement.getBoundingClientRect();
+                width = canvas.width = rect.width;
+                height = canvas.height = rect.height;
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            for (let i = 0; i < PETAL_COUNT; i++) {
+                petals.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    size: 5 + Math.random() * 8,
+                    speedY: 0.4 + Math.random() * 1.1,
+                    speedX: -0.5 + Math.random() * 1.2,
+                    angle: Math.random() * Math.PI * 2,
+                    spin: (Math.random() - 0.5) * 0.03,
+                    opacity: 0.25 + Math.random() * 0.55,
+                    color: Math.random() > 0.35 ? '#ffb3c1' : '#ff4d6d'
+                });
+            }
+
+            function drawPetal(p) {
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.angle);
+                ctx.globalAlpha = p.opacity;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.bezierCurveTo(p.size, -p.size * 0.6, p.size * 1.2, p.size * 0.6, 0, p.size * 1.3);
+                ctx.bezierCurveTo(-p.size * 1.2, p.size * 0.6, -p.size, -p.size * 0.6, 0, 0);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            function animate() {
+                ctx.clearRect(0, 0, width, height);
+                for (let p of petals) {
+                    p.y += p.speedY;
+                    p.x += p.speedX + Math.sin(p.angle) * 0.3;
+                    p.angle += p.spin;
+
+                    if (p.y > height + 20) {
+                        p.y = -15;
+                        p.x = Math.random() * width;
+                    }
+                    if (p.x > width + 20) p.x = -15;
+                    if (p.x < -20) p.x = width + 15;
+
+                    drawPetal(p);
+                }
+                requestAnimationFrame(animate);
+            }
+            animate();
+        }
+
+        // ----------------------------------------------------
+        // 5. 3D НАКЛОН КАРТОЧЕК И INTERSECTION OBSERVER
+        // ----------------------------------------------------
+        function attach3DTiltAndScrollReveal() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach((entry, idx) => {
+                    if (entry.isIntersecting) {
+                        setTimeout(() => {
+                            entry.target.classList.add('revealed');
+                        }, idx * 50);
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.08 });
+
+            document.querySelectorAll('.reveal-item').forEach(el => observer.observe(el));
+
+            document.querySelectorAll('.book-card-3d').forEach(card => {
+                const glare = card.querySelector('.book-glare');
+                card.addEventListener('mousemove', (e) => {
+                    const rect = card.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    const centerX = rect.width / 2;
+                    const centerY = rect.height / 2;
+                    const rotateX = ((y - centerY) / centerY) * -9;
+                    const rotateY = ((x - centerX) / centerX) * 9;
+
+                    card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+                    if (glare) {
+                        glare.style.opacity = '1';
+                        glare.style.background = `radial-gradient(circle at ${(x / rect.width) * 100}% ${(y / rect.height) * 100}%, rgba(255,255,255,0.35), transparent 60%)`;
+                    }
+                });
+
+                card.addEventListener('mouseleave', () => {
+                    card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`;
+                    if (glare) glare.style.opacity = '0';
+                });
+            });
+        }
+
+        // ----------------------------------------------------
+        // 6. РЕНДЕРИНГ ВИТРИНЫ И КАТАЛОГА БЕСПЛАТНЫХ КНИГ
+        // ----------------------------------------------------
+        function renderHeroFeaturedBook() {
+            const container = document.getElementById('hero-featured-card');
+            if (!container || appState.books.length === 0) return;
+            const featured = appState.books[0];
+            const chaptersCount = (featured.chapters || []).length;
+
+            container.innerHTML = `
+                <div class="flex items-center justify-between text-xs text-cherry-200 mb-4">
+                    <span class="px-2.5 py-1 rounded-lg bg-emerald-500/30 border border-emerald-300/30 text-emerald-100 font-semibold">✨ Бесплатный доступ</span>
+                    <span><i class="fa-solid fa-layer-group mr-1"></i>Глав: ${chaptersCount}</span>
+                </div>
+                <div onclick="openBookDetailModal('${featured.id}')" class="cursor-pointer group flex gap-4 items-center">
+                    <div class="w-28 h-40 rounded-xl bg-gradient-to-br ${featured.coverGradient} p-3 flex flex-col justify-between text-white shadow-xl shrink-0 group-hover:scale-105 transition-transform book-cover-wrapper">
+                        <div class="text-[9px] uppercase tracking-widest opacity-75">${featured.genre}</div>
+                        <div class="my-auto text-center">
+                            <i class="fa-solid ${featured.coverIcon || 'fa-book'} text-2xl text-cherry-200 mb-1.5"></i>
+                            <div class="font-display font-bold text-xs leading-tight line-clamp-3">${featured.title}</div>
+                        </div>
+                        <div class="text-[9px] opacity-70 truncate">${featured.author}</div>
+                    </div>
+                    <div class="space-y-2">
+                        <h3 class="font-display text-2xl font-bold leading-snug group-hover:text-cherry-200 transition-colors line-clamp-2">${featured.title}</h3>
+                        <p class="text-xs text-cherry-100/80">${featured.author}</p>
+                        <p class="text-xs text-cherry-100/90 line-clamp-3 leading-relaxed">${featured.description}</p>
+                        <div class="pt-2 flex flex-wrap items-center gap-2">
+                            <button onclick="event.stopPropagation(); openReaderModal('${featured.id}')" class="px-3.5 py-1.5 rounded-xl bg-white text-cherry-800 hover:bg-cherry-100 text-xs font-semibold transition-all">
+                                <i class="fa-solid fa-book-open mr-1"></i>Читать
+                            </button>
+                            <button onclick="event.stopPropagation(); openBookStudioModal('${featured.id}')" class="px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-medium transition-all">
+                                <i class="fa-solid fa-pen mr-1"></i>Свой текст
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderCatalog() {
+            const grid = document.getElementById('books-grid');
+            const emptyState = document.getElementById('empty-catalog-state');
+            const countLabel = document.getElementById('catalog-count-label');
+            if (!grid) return;
+
+            let filtered = appState.books.filter(book => {
+                const matchesGenre = appState.currentGenre === 'Все' || book.genre === appState.currentGenre;
+                const q = appState.searchQuery.trim().toLowerCase();
+                const matchesSearch = !q || book.title.toLowerCase().includes(q) || book.author.toLowerCase().includes(q) || book.genre.toLowerCase().includes(q);
+                return matchesGenre && matchesSearch;
+            });
+
+            if (appState.sortBy === 'rating') {
+                filtered.sort((a, b) => Number(b.computedRating || b.rating) - Number(a.computedRating || a.rating));
+            } else if (appState.sortBy === 'chapters') {
+                filtered.sort((a, b) => ((b.chapters || []).length) - ((a.chapters || []).length));
+            }
+
+            countLabel.textContent = `Книг в библиотеке: ${filtered.length}`;
+            document.getElementById('stat-total-books').textContent = `${appState.books.length}`;
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            emptyState.classList.add('hidden');
+
+            grid.innerHTML = filtered.map(book => {
+                const isFav = appState.profile.favorites.includes(book.id);
+                const shelfStatus = appState.profile.shelves[book.id];
+                const chaptersCount = (book.chapters || []).length;
+                const shelfLabels = {
+                    reading: '<span class="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-700 dark:text-amber-300 text-[10px] font-semibold">📖 Читаю</span>',
+                    planned: '<span class="px-2 py-0.5 rounded-md bg-blue-500/20 text-blue-700 dark:text-blue-300 text-[10px] font-semibold">🔖 В планах</span>',
+                    completed: '<span class="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[10px] font-semibold">✅ Прочитано</span>'
+                };
+
+                return `
+                <div class="reveal-item book-card-3d group bg-white dark:bg-cream-800 rounded-3xl p-5 border border-stone-200/80 dark:border-stone-700/70 shadow-sm hover:shadow-xl flex flex-col justify-between relative">
+                    <div>
+                        <!-- Верхние бейджи и кнопка избранного -->
+                        <div class="flex items-center justify-between gap-2 mb-4">
+                            <span class="px-3 py-1 rounded-full text-[11px] font-semibold bg-cherry-50 dark:bg-cherry-950/80 text-cherry-700 dark:text-cherry-300">
+                                ${book.genre}
+                            </span>
+                            <div class="flex items-center gap-1.5">
+                                ${shelfStatus ? shelfLabels[shelfStatus] : ''}
+                                <button onclick="toggleFavorite('${book.id}')" class="w-8 h-8 rounded-full flex items-center justify-center transition-colors ${isFav ? 'bg-cherry-50 text-cherry-500' : 'text-stone-400 hover:text-cherry-500'}" title="В закладки">
+                                    <i class="${isFav ? 'fa-solid' : 'fa-regular'} fa-heart"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 3D Обложка книги -->
+                        <div onclick="openBookDetailModal('${book.id}')" class="cursor-pointer my-2 flex justify-center">
+                            <div class="w-40 h-56 rounded-r-2xl rounded-l-md bg-gradient-to-br ${book.coverGradient || 'from-cherry-700 to-cherry-950'} p-4 flex flex-col justify-between text-white book-cover-wrapper select-none">
+                                <div class="book-glare"></div>
+                                <div class="flex justify-between items-center text-[10px] opacity-80">
+                                    <span>CHERRY FREE</span>
+                                    <span class="px-1.5 py-0.5 rounded bg-white/20 font-semibold">${chaptersCount} гл.</span>
+                                </div>
+                                <div class="my-auto text-center space-y-2">
+                                    <div class="w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center mx-auto">
+                                        <i class="fa-solid ${book.coverIcon || 'fa-book-open'} text-cherry-200 text-lg"></i>
+                                    </div>
+                                    <h4 class="font-display font-bold text-base leading-tight line-clamp-3 px-1">${book.title}</h4>
+                                </div>
+                                <div class="text-[10px] text-center opacity-80 border-t border-white/15 pt-1.5 truncate">
+                                    ${book.author}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Информация о книге -->
+                        <div class="mt-5">
+                            <div class="flex items-center justify-between text-xs mb-1">
+                                <span class="text-amber-500 font-semibold"><i class="fa-solid fa-star mr-1"></i>${book.computedRating || book.rating}</span>
+                                <span class="text-emerald-600 dark:text-emerald-400 font-semibold">Бесплатно</span>
+                            </div>
+                            <h3 onclick="openBookDetailModal('${book.id}')" class="font-display text-2xl font-bold leading-snug cursor-pointer hover:text-cherry-600 dark:hover:text-cherry-400 transition-colors line-clamp-2">
+                                ${book.title}
+                            </h3>
+                            <p class="text-xs text-stone-500 dark:text-stone-400 mb-2">${book.author}</p>
+                            <p class="text-xs text-stone-600 dark:text-stone-300 line-clamp-2 leading-relaxed">${book.description}</p>
+                        </div>
+                    </div>
+
+                    <!-- Нижняя панель карточки: бесплатное чтение и редактирование текста -->
+                    <div class="pt-4 mt-4 border-t border-stone-100 dark:border-stone-700/60 flex items-center justify-between gap-2">
+                        <button onclick="openBookStudioModal('${book.id}')" class="px-3 py-2 rounded-xl bg-cream-100 dark:bg-cream-900 hover:bg-cherry-50 dark:hover:bg-cherry-950 text-stone-700 dark:text-stone-200 text-xs font-semibold transition-all flex items-center gap-1.5" title="Редактировать книгу и вставить свой текст">
+                            <i class="fa-solid fa-pen-to-square text-cherry-600"></i>
+                            <span>Свой текст</span>
+                        </button>
+
+                        <button onclick="openReaderModal('${book.id}')" class="flex-1 justify-center px-4 py-2 rounded-xl bg-cherry-700 hover:bg-cherry-600 text-white text-xs font-semibold shadow-sm transition-all flex items-center gap-1.5">
+                            <i class="fa-solid fa-book-open-reader"></i>
+                            <span>Читать бесплатно</span>
+                        </button>
+                    </div>
+                </div>
+                `;
+            }).join('');
+
+            attach3DTiltAndScrollReveal();
+        }
+
+        // ----------------------------------------------------
+        // 7. ДЕТАЛЬНОЕ ОКНО КНИГИ, ОГЛАВЛЕНИЕ И ОТЗЫВЫ
+        // ----------------------------------------------------
+        window.openBookDetailModal = function(bookId) {
+            appState.activeBookId = bookId;
+            renderBookDetailModalContent(bookId);
+            const modal = document.getElementById('book-detail-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        };
+
+        window.closeBookDetailModal = function() {
+            const modal = document.getElementById('book-detail-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            appState.activeBookId = null;
+        };
+
+        function renderBookDetailModalContent(bookId) {
+            const book = appState.books.find(b => b.id === bookId);
+            const container = document.getElementById('book-detail-content');
+            if (!book || !container) return;
+
+            const currentShelf = appState.profile.shelves[book.id] || '';
+            const bookReviews = appState.reviews.filter(r => r.bookId === book.id);
+            const savedPage = appState.profile.readingProgress[book.id] || 0;
+            const chapters = book.chapters || [];
+
+            container.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+                    <!-- Левая колонка с обложкой и управлением полками -->
+                    <div class="md:col-span-4 flex flex-col items-center">
+                        <div class="w-48 h-68 rounded-r-2xl rounded-l-md bg-gradient-to-br ${book.coverGradient} p-5 flex flex-col justify-between text-white shadow-2xl book-cover-wrapper mb-6">
+                            <div class="text-[10px] uppercase tracking-widest opacity-75">${book.genre}</div>
+                            <div class="my-auto text-center space-y-2">
+                                <i class="fa-solid ${book.coverIcon || 'fa-book'} text-3xl text-cherry-200"></i>
+                                <div class="font-display font-bold text-xl leading-tight">${book.title}</div>
+                            </div>
+                            <div class="text-xs text-center opacity-80">${book.author}</div>
+                        </div>
+
+                        <!-- Выбор статуса на полке -->
+                        <div class="w-full space-y-2 bg-cream-100 dark:bg-cream-800 p-4 rounded-2xl border border-stone-200 dark:border-stone-700">
+                            <label class="text-xs font-bold uppercase tracking-wider text-stone-500 block">Статус на вашей полке:</label>
+                            <div class="grid grid-cols-1 gap-1.5">
+                                <button onclick="setBookShelf('${book.id}', 'reading')" class="px-3 py-2 rounded-xl text-xs font-semibold text-left flex items-center justify-between transition-all ${currentShelf === 'reading' ? 'bg-cherry-700 text-white' : 'hover:bg-stone-200/70 dark:hover:bg-stone-700'}">
+                                    <span>📖 Читаю сейчас</span>
+                                    ${currentShelf === 'reading' ? '<i class="fa-solid fa-check"></i>' : ''}
+                                </button>
+                                <button onclick="setBookShelf('${book.id}', 'planned')" class="px-3 py-2 rounded-xl text-xs font-semibold text-left flex items-center justify-between transition-all ${currentShelf === 'planned' ? 'bg-cherry-700 text-white' : 'hover:bg-stone-200/70 dark:hover:bg-stone-700'}">
+                                    <span>🔖 В планах</span>
+                                    ${currentShelf === 'planned' ? '<i class="fa-solid fa-check"></i>' : ''}
+                                </button>
+                                <button onclick="setBookShelf('${book.id}', 'completed')" class="px-3 py-2 rounded-xl text-xs font-semibold text-left flex items-center justify-between transition-all ${currentShelf === 'completed' ? 'bg-cherry-700 text-white' : 'hover:bg-stone-200/70 dark:hover:bg-stone-700'}">
+                                    <span>✅ Прочитано</span>
+                                    ${currentShelf === 'completed' ? '<i class="fa-solid fa-check"></i>' : ''}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Правая колонка с описанием, оглавлением и отзывами -->
+                    <div class="md:col-span-8 space-y-6">
+                        <div>
+                            <div class="flex flex-wrap items-center gap-2 mb-2">
+                                <span class="px-3 py-1 rounded-full text-xs font-semibold bg-cherry-100 dark:bg-cherry-950 text-cherry-700 dark:text-cherry-300">${book.genre}</span>
+                                <span class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">Бесплатная книга</span>
+                                <span class="text-xs text-stone-500">• Глав: ${chapters.length}</span>
+                            </div>
+                            <h2 class="text-3xl sm:text-4xl font-bold leading-tight">${book.title}</h2>
+                            <p class="text-base text-stone-500 dark:text-stone-400 mt-1">${book.author}</p>
+                        </div>
+
+                        <p class="text-sm sm:text-base leading-relaxed text-stone-700 dark:text-stone-300 bg-cream-100/60 dark:bg-cream-800/40 p-4 rounded-2xl border border-stone-200/60 dark:border-stone-700/60">
+                            ${book.description}
+                        </p>
+
+                        <!-- Кнопки бесплатного чтения и редактирования книги -->
+                        <div class="flex flex-wrap items-center gap-3 pt-2">
+                            <button onclick="openReaderModal('${book.id}')" class="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-cherry-700 to-cherry-500 hover:from-cherry-600 hover:to-cherry-500 text-white font-semibold text-sm shadow-lg shadow-cherry-600/25 flex items-center gap-2 transition-all">
+                                <i class="fa-solid fa-book-open-reader"></i>
+                                <span>${savedPage > 0 ? `Продолжить чтение (Глава ${savedPage + 1})` : 'Читать книгу бесплатно'}</span>
+                            </button>
+
+                            <button onclick="closeBookDetailModal(); openBookStudioModal('${book.id}')" class="px-5 py-3.5 rounded-2xl bg-stone-900 hover:bg-stone-800 dark:bg-white dark:text-stone-900 text-white font-semibold text-sm flex items-center gap-2 transition-all">
+                                <i class="fa-solid fa-pen-nib"></i>
+                                <span>Редактировать книгу / Свой текст</span>
+                            </button>
+
+                            ${appState.books.length > 1 ? `
+                                <button onclick="deleteBookById('${book.id}')" class="px-4 py-3.5 rounded-2xl bg-red-500/10 hover:bg-red-500 hover:text-white text-red-600 text-sm font-semibold transition-all" title="Удалить книгу">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            ` : ''}
+                        </div>
+
+                        <!-- Оглавление книги -->
+                        <div class="pt-4 border-t border-stone-200 dark:border-stone-800">
+                            <h3 class="text-xl font-bold mb-3">Оглавление (${chapters.length} гл.)</h3>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                ${chapters.map((ch, idx) => `
+                                    <button onclick="openReaderModal('${book.id}', ${idx})" class="p-3 rounded-xl bg-cream-100 dark:bg-cream-800 hover:bg-cherry-50 dark:hover:bg-cherry-950/60 border border-stone-200 dark:border-stone-700 text-left flex items-center justify-between transition-all">
+                                        <span class="text-xs font-semibold truncate">${idx + 1}. ${ch.title || `Глава ${idx + 1}`}</span>
+                                        <i class="fa-solid fa-chevron-right text-[10px] text-cherry-600"></i>
+                                    </button>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <!-- Секция отзывов -->
+                        <div class="pt-6 border-t border-stone-200 dark:border-stone-800 space-y-5">
+                            <h3 class="text-2xl font-bold flex items-center gap-2">
+                                <i class="fa-regular fa-comments text-cherry-500"></i>
+                                <span>Отзывы и заметки читателей (${bookReviews.length})</span>
+                            </h3>
+
+                            <form onsubmit="submitBookReview(event, '${book.id}')" class="bg-cream-100 dark:bg-cream-800 p-4 rounded-2xl border border-stone-200 dark:border-stone-700 space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-semibold">Отзыв от: <strong class="text-cherry-600 dark:text-cherry-400">${appState.profile.name}</strong></span>
+                                    <select id="review-rating-select" class="px-2.5 py-1 rounded-lg bg-white dark:bg-cream-900 border border-stone-300 dark:border-stone-700 text-xs font-bold text-amber-500">
+                                        <option value="5">★★★★★ (5)</option>
+                                        <option value="4">★★★★☆ (4)</option>
+                                        <option value="3">★★★☆☆ (3)</option>
+                                        <option value="2">★★☆☆☆ (2)</option>
+                                        <option value="1">★☆☆☆☆ (1)</option>
+                                    </select>
+                                </div>
+                                <textarea id="review-text-input" required rows="2" placeholder="Напишите комментарий или заметку к книге..." class="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-cream-900 border border-stone-300 dark:border-stone-700 text-sm outline-none focus:border-cherry-500"></textarea>
+                                <div class="flex justify-end">
+                                    <button type="submit" class="px-5 py-2 rounded-xl bg-cherry-700 hover:bg-cherry-600 text-white text-xs font-semibold transition-all">
+                                        Опубликовать отзыв
+                                    </button>
+                                </div>
+                            </form>
+
+                            <div class="space-y-3 max-h-64 overflow-y-auto pr-1">
+                                ${bookReviews.length === 0 ? `
+                                    <p class="text-xs text-stone-400 italic py-3">Пока нет отзывов. Оставьте первый комментарий!</p>
+                                ` : bookReviews.map(r => `
+                                    <div class="p-3.5 rounded-2xl bg-white dark:bg-cream-800/70 border border-stone-200/70 dark:border-stone-700/60 space-y-1">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center gap-2">
+                                                <span class="text-base">${r.userAvatar || '🍒'}</span>
+                                                <span class="text-xs font-bold">${r.userName || 'Читатель'}</span>
+                                            </div>
+                                            <span class="text-xs text-amber-500 font-bold">${'★'.repeat(Number(r.rating || 5))}</span>
+                                        </div>
+                                        <p class="text-xs text-stone-600 dark:text-stone-300 leading-relaxed">${r.text}</p>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        window.submitBookReview = async function(e, bookId) {
+            e.preventDefault();
+            const rating = Number(document.getElementById('review-rating-select').value);
+            const text = document.getElementById('review-text-input').value.trim();
+            if (!text) return;
+
+            const book = appState.books.find(b => b.id === bookId);
+            const newReview = {
+                bookId,
+                bookTitle: book ? book.title : 'Книга',
+                userId: appState.user ? appState.user.uid : 'local-guest',
+                userName: appState.profile.name,
+                userAvatar: appState.profile.avatar,
+                rating,
+                text,
+                createdAt: Date.now()
+            };
+
+            appState.reviews.unshift(newReview);
+            recalculateBookRatings();
+            renderBookDetailModalContent(bookId);
+            renderCatalog();
+            renderProfileData();
+            showToast("Ваш отзыв сохранен в библиотеке 🍒");
+
+            if (db && appState.user) {
+                try {
+                    const reviewsColRef = collection(db, 'artifacts', appId, 'public', 'data', 'reviews');
+                    await addDoc(reviewsColRef, newReview);
+                } catch (err) {
+                    console.error("Ошибка записи отзыва в Firestore:", err);
+                }
+            }
+        };
+
+        window.setBookShelf = function(bookId, shelfType) {
+            if (appState.profile.shelves[bookId] === shelfType) {
+                delete appState.profile.shelves[bookId];
+                showToast("Книга убрана с полки");
+            } else {
+                appState.profile.shelves[bookId] = shelfType;
+                const names = { reading: '«Читаю сейчас»', planned: '«В планах»', completed: '«Прочитано»' };
+                showToast(`Книга добавлена на полку ${names[shelfType]}`);
+            }
+            saveUserProfileToFirestore();
+            if (appState.activeBookId === bookId) renderBookDetailModalContent(bookId);
+        };
+
+        // ----------------------------------------------------
+        // 8. АВТОРСКАЯ СТУДИЯ: РЕДАКТИРОВАНИЕ ШАБЛОННОЙ КНИГИ И СОЗДАНИЕ НОВЫХ
+        // ----------------------------------------------------
+        window.openEditFirstBook = function() {
+            const firstBook = appState.books[0];
+            if (firstBook) {
+                openBookStudioModal(firstBook.id);
+            } else {
+                openBookStudioModal();
+            }
+        };
+
+        window.editCurrentReaderBook = function() {
+            const bId = appState.readerBookId;
+            closeReaderModal();
+            openBookStudioModal(bId);
+        };
+
+        window.openBookStudioModal = function(bookId = null) {
+            const modal = document.getElementById('book-studio-modal');
+            const chaptersContainer = document.getElementById('studio-chapters-container');
+            chaptersContainer.innerHTML = '';
+
+            if (bookId) {
+                const book = appState.books.find(b => b.id === bookId);
+                if (book) {
+                    document.getElementById('studio-modal-title').textContent = 'Редактировать книгу и текст';
+                    document.getElementById('studio-book-id').value = book.id;
+                    document.getElementById('studio-book-title').value = book.title;
+                    document.getElementById('studio-book-author').value = book.author;
+                    document.getElementById('studio-book-genre').value = book.genre;
+                    document.getElementById('studio-book-gradient').value = book.coverGradient || 'from-[#8B0029] via-[#5c001b] to-[#24000a]';
+                    document.getElementById('studio-book-icon').value = book.coverIcon || 'fa-feather-pointed';
+                    document.getElementById('studio-book-desc').value = book.description;
+
+                    const chList = book.chapters && book.chapters.length > 0
+                        ? book.chapters
+                        : [{ title: 'Глава 1', content: '' }];
+                    chList.forEach(ch => addChapterInputBlock(ch.title, ch.content));
+                }
+            } else {
+                document.getElementById('studio-modal-title').textContent = 'Создать новую книгу';
+                document.getElementById('studio-book-id').value = '';
+                document.getElementById('studio-book-title').value = '';
+                document.getElementById('studio-book-author').value = appState.profile.name || 'Автор';
+                document.getElementById('studio-book-desc').value = '';
+                addChapterInputBlock('Глава 1', '');
+            }
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        };
+
+        window.closeBookStudioModal = function() {
+            const modal = document.getElementById('book-studio-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        };
+
+        window.addChapterInputBlock = function(title = '', content = '') {
+            const container = document.getElementById('studio-chapters-container');
+            const idx = container.children.length + 1;
+            const wrapper = document.createElement('div');
+            wrapper.className = 'chapter-block p-4 rounded-2xl bg-cream-100 dark:bg-cream-800 border border-stone-200 dark:border-stone-700 space-y-2.5';
+            wrapper.innerHTML = `
+                <div class="flex items-center justify-between gap-2">
+                    <input type="text" placeholder="Название главы (например: Глава ${idx})" value="${title.replace(/"/g, '&quot;')}" class="chapter-title-input flex-1 px-3 py-1.5 rounded-xl bg-white dark:bg-cream-900 border border-stone-300 dark:border-stone-700 text-xs font-bold outline-none focus:border-cherry-500">
+                    <button type="button" onclick="this.closest('.chapter-block').remove()" class="px-2.5 py-1 rounded-lg text-xs text-stone-400 hover:text-red-500" title="Удалить главу">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </div>
+                <textarea rows="6" required placeholder="Вставьте или напишите сюда текст главы..." class="chapter-content-input w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-cream-900 border border-stone-300 dark:border-stone-700 text-sm font-reader outline-none focus:border-cherry-500">${content}</textarea>
+            `;
+            container.appendChild(wrapper);
+        };
+
+        window.importTxtFileToChapters = function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                if (!text) return;
+                const titleInput = document.getElementById('studio-book-title');
+                if (!titleInput.value.trim()) {
+                    titleInput.value = file.name.replace(/\.txt$/i, '');
+                }
+                addChapterInputBlock(`Импорт: ${file.name.replace(/\.txt$/i, '')}`, text);
+                showToast(`Текст из файла «${file.name}» успешно добавлен в главу! 📄`);
+            };
+            reader.readAsText(file, 'UTF-8');
+        };
+
+        window.saveBookFromStudio = async function(e) {
+            e.preventDefault();
+            const existingId = document.getElementById('studio-book-id').value;
+            const title = document.getElementById('studio-book-title').value.trim();
+            const author = document.getElementById('studio-book-author').value.trim();
+            const genre = document.getElementById('studio-book-genre').value;
+            const coverGradient = document.getElementById('studio-book-gradient').value;
+            const coverIcon = document.getElementById('studio-book-icon').value;
+            const description = document.getElementById('studio-book-desc').value.trim();
+
+            const chapterBlocks = document.querySelectorAll('#studio-chapters-container .chapter-block');
+            const chapters = [];
+            chapterBlocks.forEach((block, idx) => {
+                const chTitle = block.querySelector('.chapter-title-input').value.trim() || `Глава ${idx + 1}`;
+                const chContent = block.querySelector('.chapter-content-input').value.trim();
+                if (chContent) {
+                    chapters.push({ title: chTitle, content: chContent });
+                }
+            });
+
+            if (chapters.length === 0) {
+                showToast("Добавьте хотя бы одну главу с текстом", true);
+                return;
+            }
+
+            const bookId = existingId || ('book-' + Date.now());
+            const bookObj = {
+                id: bookId,
+                title,
+                author,
+                genre,
+                rating: 5.0,
+                reviewsCount: 1,
+                year: 2026,
+                badge: "Бесплатно",
+                coverGradient,
+                coverIcon,
+                description,
+                chapters
+            };
+
+            const existingIdx = appState.books.findIndex(b => b.id === bookId);
+            if (existingIdx > -1) {
+                appState.books[existingIdx] = bookObj;
+            } else {
+                appState.books.unshift(bookObj);
+            }
+
+            closeBookStudioModal();
+            refreshAllUI();
+            showToast(`Книга «${title}» сохранена! Теперь вы можете читать её в онлайн-читалке 📚`);
+
+            await saveBookToFirestore(bookObj);
+        };
+
+        window.deleteBookById = async function(bookId) {
+            if (appState.books.length <= 1) {
+                showToast("В библиотеке должна оставаться хотя бы 1 книга. Вы можете отредактировать её текст!", true);
+                return;
+            }
+            appState.books = appState.books.filter(b => b.id !== bookId);
+            closeBookDetailModal();
+            refreshAllUI();
+            showToast("Книга удалена из библиотеки");
+
+            if (db && appState.user) {
+                try {
+                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'libraryBooks', bookId));
+                } catch (err) {
+                    console.error("Ошибка удаления книги:", err);
+                }
+            }
+        };
+
+        // ----------------------------------------------------
+        // 9. ВСТРОЕННАЯ ОНЛАЙН-ЧИТАЛКА С ВЫБОРОМ ГЛАВ
+        // ----------------------------------------------------
+        window.openReaderModal = function(bookId, startChapterIdx = null) {
+            const book = appState.books.find(b => b.id === bookId);
+            if (!book) return;
+
+            closeBookDetailModal();
+            appState.readerBookId = bookId;
+            appState.readerPageIndex = startChapterIdx !== null
+                ? startChapterIdx
+                : (appState.profile.readingProgress[bookId] || 0);
+
+            if (!appState.profile.shelves[bookId]) {
+                appState.profile.shelves[bookId] = 'reading';
+                saveUserProfileToFirestore();
+            }
+
+            document.getElementById('reader-book-title').textContent = book.title;
+            document.getElementById('reader-book-author').textContent = book.author;
+
+            renderReaderPage();
+            const modal = document.getElementById('reader-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        };
+
+        window.closeReaderModal = function() {
+            const modal = document.getElementById('reader-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        };
+
+        function renderReaderPage() {
+            const book = appState.books.find(b => b.id === appState.readerBookId);
+            if (!book) return;
+            const chapters = book.chapters && book.chapters.length > 0
+                ? book.chapters
+                : [{ title: "Глава 1", content: "Текст пуст. Нажмите «Изменить текст / Главы», чтобы вставить свой текст." }];
+
+            const total = chapters.length;
+            if (appState.readerPageIndex >= total) appState.readerPageIndex = total - 1;
+            if (appState.readerPageIndex < 0) appState.readerPageIndex = 0;
+
+            const currentChapter = chapters[appState.readerPageIndex];
+            const pageEl = document.getElementById('reader-page-text');
+            pageEl.innerHTML = `<h4 class="text-2xl font-bold font-display mb-4">${currentChapter.title || `Глава ${appState.readerPageIndex + 1}`}</h4><div>${currentChapter.content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>`;
+
+            // Выпадающий список глав
+            const chapterSelect = document.getElementById('reader-chapter-select');
+            chapterSelect.innerHTML = chapters.map((ch, idx) => `
+                <option value="${idx}" ${idx === appState.readerPageIndex ? 'selected' : ''}>
+                    ${idx + 1}. ${ch.title || `Глава ${idx + 1}`}
+                </option>
+            `).join('');
+
+            document.getElementById('reader-page-counter').textContent = `Глава ${appState.readerPageIndex + 1} из ${total}`;
+            const percent = Math.round(((appState.readerPageIndex + 1) / total) * 100);
+            document.getElementById('reader-progress-bar').style.width = `${percent}%`;
+
+            document.getElementById('reader-prev-btn').disabled = appState.readerPageIndex === 0;
+            document.getElementById('reader-next-btn').disabled = appState.readerPageIndex === total - 1;
+
+            document.getElementById('reader-scroll-container').scrollTop = 0;
+
+            appState.profile.readingProgress[book.id] = appState.readerPageIndex;
+            saveUserProfileToFirestore();
+        }
+
+        window.turnReaderPage = function(delta) {
+            appState.readerPageIndex += delta;
+            renderReaderPage();
+        };
+
+        window.jumpToReaderPage = function(indexStr) {
+            appState.readerPageIndex = Number(indexStr) || 0;
+            renderReaderPage();
+        };
+
+        window.changeReaderFontSize = function(delta) {
+            appState.readerFontSize = Math.min(28, Math.max(14, appState.readerFontSize + delta));
+            document.getElementById('reader-page-text').style.fontSize = `${appState.readerFontSize}px`;
+            document.getElementById('reader-font-label').textContent = `${appState.readerFontSize}px`;
+        };
+
+        window.setReaderTheme = function(theme) {
+            const modal = document.getElementById('reader-modal');
+            modal.classList.remove('reader-theme-light', 'reader-theme-sepia', 'reader-theme-night');
+            modal.classList.add(`reader-theme-${theme}`);
+        };
+
+        // ----------------------------------------------------
+        // 10. ЗАКЛАДКИ / ИЗБРАННОЕ
+        // ----------------------------------------------------
+        window.toggleFavorite = function(bookId) {
+            const idx = appState.profile.favorites.indexOf(bookId);
+            if (idx > -1) {
+                appState.profile.favorites.splice(idx, 1);
+                showToast("Книга убрана из закладок");
+            } else {
+                appState.profile.favorites.push(bookId);
+                showToast("Книга добавлена в любимые ❤️");
+            }
+            saveUserProfileToFirestore();
+        };
+
+        function renderFavoritesDrawer() {
+            const container = document.getElementById('fav-items-container');
+            const badge = document.getElementById('badge-favorites');
+            const favCount = appState.profile.favorites.length;
+
+            if (favCount > 0) {
+                badge.textContent = favCount;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+
+            if (favCount === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-16 text-stone-400">
+                        <i class="fa-regular fa-heart text-4xl mb-3 opacity-40"></i>
+                        <p class="text-sm">Список любимых книг пуст</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = appState.profile.favorites.map(bookId => {
+                const book = appState.books.find(b => b.id === bookId);
+                if (!book) return '';
+                return `
+                    <div class="flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-white dark:bg-cream-800 border border-stone-200 dark:border-stone-700">
+                        <div onclick="closeFavoritesDrawer(); openBookDetailModal('${book.id}')" class="flex items-center gap-3 cursor-pointer">
+                            <div class="w-12 h-16 rounded-lg bg-gradient-to-br ${book.coverGradient} flex items-center justify-center text-white text-xs shrink-0">
+                                <i class="fa-solid ${book.coverIcon || 'fa-book'}"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-sm hover:text-cherry-600 transition-colors line-clamp-1">${book.title}</h4>
+                                <p class="text-xs text-stone-400">${book.author} • Бесплатно</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <button onclick="closeFavoritesDrawer(); openReaderModal('${book.id}')" class="p-2 rounded-xl bg-cherry-50 dark:bg-cherry-950 text-cherry-600 text-xs" title="Читать">
+                                <i class="fa-solid fa-book-open"></i>
+                            </button>
+                            <button onclick="toggleFavorite('${book.id}')" class="p-2 rounded-xl hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-400 hover:text-cherry-500 text-xs" title="Убрать">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ----------------------------------------------------
+        // 11. ЛИЧНЫЙ КАБИНЕТ / ПРОФИЛЬ И ЕГО ВКЛАДКИ
+        // ----------------------------------------------------
+        function updateHeaderUserUI() {
+            document.getElementById('header-avatar').textContent = appState.profile.avatar || '🍒';
+            document.getElementById('header-username').textContent = appState.profile.name || 'Профиль';
+        }
+
+        function renderProfileData() {
+            updateHeaderUserUI();
+            document.getElementById('profile-avatar-box').textContent = appState.profile.avatar || '🍒';
+            document.getElementById('profile-name-display').textContent = appState.profile.name;
+            document.getElementById('profile-status-badge').textContent = appState.profile.status || 'Автор и Читатель';
+            document.getElementById('profile-bio-display').textContent = appState.profile.bio;
+            document.getElementById('profile-joined-display').textContent = appState.profile.joined || 'Октябрь 2026';
+            document.getElementById('profile-uid-display').textContent = appState.user ? appState.user.uid : 'local-session-user';
+
+            const shelfEntries = Object.entries(appState.profile.shelves || {});
+            const readingCount = shelfEntries.filter(([, st]) => st === 'reading').length;
+            const completedCount = shelfEntries.filter(([, st]) => st === 'completed').length;
+            const goal = Number(appState.profile.readingGoal) || 10;
+            const pct = Math.min(100, Math.round((completedCount / goal) * 100));
+
+            document.getElementById('reading-goal-label').textContent = `${completedCount} из ${goal} книг (${pct}%)`;
+            document.getElementById('reading-goal-bar').style.width = `${pct}%`;
+            document.getElementById('stat-shelf-reading').textContent = readingCount;
+            document.getElementById('stat-shelf-completed').textContent = completedCount;
+
+            const myReviews = appState.reviews.filter(r => r.userName === appState.profile.name || (appState.user && r.userId === appState.user.uid));
+            document.getElementById('stat-user-reviews').textContent = myReviews.length;
+
+            // Вкладка 1: Полки
+            const shelvesGrid = document.getElementById('profile-shelves-grid');
+            const filteredShelves = shelfEntries.filter(([, status]) => appState.currentShelfFilter === 'all' || status === appState.currentShelfFilter);
+
+            if (filteredShelves.length === 0) {
+                shelvesGrid.innerHTML = `<div class="col-span-full py-12 text-center text-stone-400 text-sm">На этой полке пока нет книг.</div>`;
+            } else {
+                const badgeMap = {
+                    reading: '📖 Читаю сейчас',
+                    planned: '🔖 В планах',
+                    completed: '✅ Прочитано'
+                };
+                shelvesGrid.innerHTML = filteredShelves.map(([bookId, status]) => {
+                    const book = appState.books.find(b => b.id === bookId);
+                    if (!book) return '';
+                    return `
+                        <div class="p-4 rounded-2xl bg-white dark:bg-cream-800 border border-stone-200 dark:border-stone-700 flex gap-4 items-center justify-between">
+                            <div onclick="openBookDetailModal('${book.id}')" class="flex items-center gap-3.5 cursor-pointer">
+                                <div class="w-14 h-20 rounded-xl bg-gradient-to-br ${book.coverGradient} flex items-center justify-center text-white shrink-0 shadow">
+                                    <i class="fa-solid ${book.coverIcon || 'fa-book'}"></i>
+                                </div>
+                                <div>
+                                    <span class="text-[11px] font-semibold text-cherry-600 dark:text-cherry-400">${badgeMap[status]}</span>
+                                    <h4 class="font-bold text-base leading-snug line-clamp-1">${book.title}</h4>
+                                    <p class="text-xs text-stone-400">${book.author}</p>
+                                </div>
+                            </div>
+                            <button onclick="openReaderModal('${book.id}')" class="px-3 py-2 rounded-xl bg-cream-100 dark:bg-cream-900 hover:bg-cherry-700 hover:text-white text-xs font-semibold transition-all">
+                                Читать
+                            </button>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // Вкладка 2: Мои книги и тексты
+            const myBooksList = document.getElementById('profile-mybooks-list');
+            myBooksList.innerHTML = appState.books.map(book => `
+                <div class="p-5 rounded-2xl bg-white dark:bg-cream-800 border border-stone-200 dark:border-stone-700 flex items-center justify-between gap-4">
+                    <div class="flex items-center gap-4">
+                        <div class="w-14 h-20 rounded-xl bg-gradient-to-br ${book.coverGradient} flex items-center justify-center text-white shrink-0 shadow">
+                            <i class="fa-solid ${book.coverIcon || 'fa-feather'}"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-lg leading-tight">${book.title}</h4>
+                            <p class="text-xs text-stone-400 mt-0.5">${book.author} • Глав: ${(book.chapters || []).length}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="openBookStudioModal('${book.id}')" class="px-3.5 py-2 rounded-xl bg-cherry-700 hover:bg-cherry-600 text-white text-xs font-semibold flex items-center gap-1.5">
+                            <i class="fa-solid fa-pen"></i>
+                            <span>Свой текст</span>
+                        </button>
+                        <button onclick="openReaderModal('${book.id}')" class="px-3 py-2 rounded-xl bg-cream-100 dark:bg-cream-900 text-xs font-semibold">
+                            Читать
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+
+            // Вкладка 3: Отзывы пользователя
+            const reviewsList = document.getElementById('profile-reviews-list');
+            if (myReviews.length === 0) {
+                reviewsList.innerHTML = `<div class="py-12 text-center text-stone-400 text-sm">Вы ещё не оставляли отзывов к книгам.</div>`;
+            } else {
+                reviewsList.innerHTML = myReviews.map(r => `
+                    <div class="p-4 rounded-2xl bg-white dark:bg-cream-800 border border-stone-200 dark:border-stone-700 space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-sm text-cherry-700 dark:text-cherry-400">${r.bookTitle || 'Книга'}</span>
+                            <span class="text-amber-500 text-xs font-bold">${'★'.repeat(Number(r.rating || 5))}</span>
+                        </div>
+                        <p class="text-xs text-stone-600 dark:text-stone-300">${r.text}</p>
+                    </div>
+                `).join('');
+            }
+
+            // Вкладка 4: Статистика чтения
+            const totalChapters = appState.books.reduce((acc, b) => acc + ((b.chapters || []).length), 0);
+
+            document.getElementById('profile-stats-cards').innerHTML = `
+                <div class="p-6 rounded-2xl bg-white dark:bg-cream-800 border border-stone-200 dark:border-stone-700">
+                    <div class="text-cherry-600 text-2xl mb-2"><i class="fa-solid fa-book-open"></i></div>
+                    <div class="text-3xl font-bold font-display">${totalChapters} гл.</div>
+                    <div class="text-xs text-stone-500 mt-1">Всего глав в вашей библиотеке</div>
+                </div>
+                <div class="p-6 rounded-2xl bg-white dark:bg-cream-800 border border-stone-200 dark:border-stone-700">
+                    <div class="text-cherry-600 text-2xl mb-2"><i class="fa-solid fa-heart"></i></div>
+                    <div class="text-3xl font-bold font-display">${appState.profile.favorites.length}</div>
+                    <div class="text-xs text-stone-500 mt-1">Книг в избранном</div>
+                </div>
+                <div class="p-6 rounded-2xl bg-white dark:bg-cream-800 border border-stone-200 dark:border-stone-700">
+                    <div class="text-cherry-600 text-2xl mb-2"><i class="fa-solid fa-award"></i></div>
+                    <div class="text-3xl font-bold font-display">${pct}%</div>
+                    <div class="text-xs text-stone-500 mt-1">Прогресс годовой цели чтения</div>
+                </div>
+            `;
+        }
+
+        // ----------------------------------------------------
+        // 12. УПРАВЛЕНИЕ ОКНАМИ, ФИЛЬТРАМИ И ТЕМОЙ
+        // ----------------------------------------------------
+        function refreshAllUI() {
+            renderCatalog();
+            renderHeroFeaturedBook();
+            renderFavoritesDrawer();
+            renderProfileData();
+        }
+
+        window.switchMainView = function(view) {
+            const cat = document.getElementById('view-catalog');
+            const prof = document.getElementById('view-profile');
+            if (view === 'profile') {
+                cat.classList.add('hidden');
+                prof.classList.remove('hidden');
+                renderProfileData();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+                prof.classList.add('hidden');
+                cat.classList.remove('hidden');
+            }
+        };
+
+        window.handleProfileClick = function() {
+            const profView = document.getElementById('view-profile');
+            if (profView.classList.contains('hidden')) {
+                switchMainView('profile');
+            } else {
+                openAuthModal();
+            }
+        };
+
+        window.switchProfileTab = function(tabName) {
+            ['shelves', 'mybooks', 'reviews', 'stats'].forEach(t => {
+                document.getElementById(`profile-panel-${t}`).classList.toggle('hidden', t !== tabName);
+                const btn = document.getElementById(`prof-tab-${t}`);
+                if (t === tabName) {
+                    btn.className = 'prof-tab-btn px-5 py-2.5 rounded-xl text-sm font-semibold bg-cherry-700 text-white shadow-md transition-all flex items-center gap-2 whitespace-nowrap';
+                } else {
+                    btn.className = 'prof-tab-btn px-5 py-2.5 rounded-xl text-sm font-semibold bg-cream-100 dark:bg-cream-800 text-stone-700 dark:text-stone-300 hover:bg-cherry-50 transition-all flex items-center gap-2 whitespace-nowrap';
+                }
+            });
+        };
+
+        window.filterShelfView = function(shelf) {
+            appState.currentShelfFilter = shelf;
+            document.querySelectorAll('.shelf-filter-btn').forEach(btn => {
+                if (btn.dataset.shelf === shelf) {
+                    btn.className = 'shelf-filter-btn px-4 py-1.5 rounded-lg text-xs font-semibold bg-stone-800 text-white dark:bg-white dark:text-stone-900';
+                } else {
+                    btn.className = 'shelf-filter-btn px-4 py-1.5 rounded-lg text-xs font-semibold bg-cream-200 dark:bg-cream-800';
+                }
+            });
+            renderProfileData();
+        };
+
+        window.setGenreFilter = function(genre) {
+            appState.currentGenre = genre;
+            document.querySelectorAll('.genre-pill').forEach(btn => {
+                if (btn.dataset.genre === genre) {
+                    btn.className = 'genre-pill px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all bg-cherry-700 text-white shadow-md shadow-cherry-700/20';
+                } else {
+                    btn.className = 'genre-pill px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all bg-cream-100 dark:bg-cream-800 hover:bg-cherry-50 dark:hover:bg-cherry-900/30';
+                }
+            });
+            renderCatalog();
+        };
+
+        window.setSortOrder = function(val) {
+            appState.sortBy = val;
+            renderCatalog();
+        };
+
+        window.resetAllFilters = function() {
+            appState.searchQuery = '';
+            document.getElementById('header-search-input').value = '';
+            document.getElementById('mobile-search-input').value = '';
+            setGenreFilter('Все');
+        };
+
+        window.clearSearch = function() {
+            appState.searchQuery = '';
+            document.getElementById('header-search-input').value = '';
+            document.getElementById('clear-search-btn').classList.add('hidden');
+            renderCatalog();
+        };
+
+        ['header-search-input', 'mobile-search-input'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('input', (e) => {
+                    appState.searchQuery = e.target.value;
+                    const clearBtn = document.getElementById('clear-search-btn');
+                    if (clearBtn) clearBtn.classList.toggle('hidden', !appState.searchQuery);
+                    switchMainView('catalog');
+                    renderCatalog();
+                });
+            }
+        });
+
+        window.openFavoritesDrawer = () => {
+            renderFavoritesDrawer();
+            document.getElementById('fav-drawer-backdrop').classList.remove('hidden');
+            document.getElementById('fav-drawer').classList.remove('translate-x-full');
+        };
+        window.closeFavoritesDrawer = () => {
+            document.getElementById('fav-drawer-backdrop').classList.add('hidden');
+            document.getElementById('fav-drawer').classList.add('translate-x-full');
+        };
+
+        window.openAuthModal = () => {
+            const m = document.getElementById('auth-modal');
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+        };
+        window.closeAuthModal = () => {
+            const m = document.getElementById('auth-modal');
+            m.classList.add('hidden');
+            m.classList.remove('flex');
+        };
+
+        window.switchAuthTab = function(mode) {
+            appState.authMode = mode;
+            const nameField = document.getElementById('auth-name-field');
+            const loginBtn = document.getElementById('auth-tab-login');
+            const regBtn = document.getElementById('auth-tab-register');
+            const submitBtn = document.getElementById('auth-submit-btn');
+
+            if (mode === 'register') {
+                nameField.classList.remove('hidden');
+                regBtn.className = 'py-2 rounded-xl text-xs font-bold bg-white dark:bg-cream-900 shadow-xs transition-all';
+                loginBtn.className = 'py-2 rounded-xl text-xs font-bold text-stone-500 transition-all';
+                submitBtn.textContent = 'Зарегистрироваться и сохранить в БД';
+            } else {
+                nameField.classList.add('hidden');
+                loginBtn.className = 'py-2 rounded-xl text-xs font-bold bg-white dark:bg-cream-900 shadow-xs transition-all';
+                regBtn.className = 'py-2 rounded-xl text-xs font-bold text-stone-500 transition-all';
+                submitBtn.textContent = 'Войти и синхронизировать БД';
+            }
+        };
+
+        window.submitAuthForm = async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('auth-input-email').value.trim();
+            const nameInput = document.getElementById('auth-input-name').value.trim();
+
+            if (appState.authMode === 'register' && nameInput) {
+                appState.profile.name = nameInput;
+            } else if (email) {
+                appState.profile.name = email.split('@')[0];
+            }
+            appState.profile.status = "Автор и Читатель";
+            await saveUserProfileToFirestore();
+            closeAuthModal();
+            switchMainView('profile');
+            showToast(`Добро пожаловать в Cherry Book, ${appState.profile.name}! 🍒`);
+        };
+
+        window.quickDemoLogin = async function() {
+            appState.profile.name = "Алиса Вишневская";
+            appState.profile.avatar = "🦊";
+            appState.profile.status = "Автор вишневой библиотеки";
+            appState.profile.bio = "Пишу собственные истории, добавляю главы и читаю в уютном режиме сепии.";
+            appState.profile.readingGoal = 10;
+            await saveUserProfileToFirestore();
+            closeAuthModal();
+            switchMainView('profile');
+            showToast("Активирован профиль автора «Алиса Вишневская» ✨");
+        };
+
+        window.openEditProfileModal = function() {
+            document.getElementById('edit-prof-name').value = appState.profile.name;
+            document.getElementById('edit-prof-status').value = appState.profile.status;
+            document.getElementById('edit-prof-bio').value = appState.profile.bio;
+            document.getElementById('edit-prof-goal').value = appState.profile.readingGoal || 10;
+            const m = document.getElementById('edit-profile-modal');
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+        };
+        window.closeEditProfileModal = function() {
+            const m = document.getElementById('edit-profile-modal');
+            m.classList.add('hidden');
+            m.classList.remove('flex');
+        };
+        window.selectAvatarEmoji = function(emoji) {
+            appState.profile.avatar = emoji;
+            document.querySelectorAll('.avatar-opt').forEach(btn => {
+                btn.classList.toggle('border-cherry-500', btn.textContent === emoji);
+                btn.classList.toggle('border-transparent', btn.textContent !== emoji);
+            });
+        };
+        window.saveProfileSettings = async function(e) {
+            e.preventDefault();
+            appState.profile.name = document.getElementById('edit-prof-name').value.trim() || 'Автор';
+            appState.profile.status = document.getElementById('edit-prof-status').value.trim() || 'Писатель';
+            appState.profile.bio = document.getElementById('edit-prof-bio').value.trim();
+            appState.profile.readingGoal = Number(document.getElementById('edit-prof-goal').value) || 10;
+            await saveUserProfileToFirestore();
+            closeEditProfileModal();
+            showToast("Профиль успешно обновлен и сохранен в БД!");
+        };
+
+        window.toggleTheme = function() {
+            const html = document.documentElement;
+            const icon = document.getElementById('theme-icon');
+            html.classList.toggle('dark');
+            if (html.classList.contains('dark')) {
+                icon.className = 'fa-solid fa-sun text-lg text-amber-400';
+            } else {
+                icon.className = 'fa-solid fa-moon text-lg';
+            }
+        };
+
+        function showToast(message, isError = false) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `px-4 py-3 rounded-2xl shadow-xl border flex items-center gap-3 text-xs sm:text-sm font-medium transition-all duration-300 transform translate-y-2 opacity-0 pointer-events-auto ${
+                isError 
+                ? 'bg-red-900 text-white border-red-700' 
+                : 'bg-stone-900/95 dark:bg-white/95 text-white dark:text-stone-900 border-cherry-500/40'
+            }`;
+            toast.innerHTML = `
+                <i class="fa-solid ${isError ? 'fa-circle-exclamation text-red-400' : 'fa-circle-check text-cherry-500'} text-base"></i>
+                <span>${message}</span>
+            `;
+            container.appendChild(toast);
+
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            });
+
+            setTimeout(() => {
+                toast.classList.add('translate-y-2', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3400);
+        }
+
+        // ----------------------------------------------------
+        // 13. ИНИЦИАЛИЗАЦИЯ ПРИ ЗАГРУЗКЕ СТРАНИЦЫ
+        // ----------------------------------------------------
+        window.addEventListener('DOMContentLoaded', () => {
+            recalculateBookRatings();
+            refreshAllUI();
+            initCherryBlossomCanvas();
+            initFirebaseAndData();
+        });
+    </script>
+</body>
+</html>
